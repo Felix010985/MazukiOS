@@ -4,6 +4,9 @@
 MazukiOS это простая операционная система написанная на Python
 
 
+![Logo](https://raw.githubusercontent.com/Felix010985/MazukiOS/refs/heads/main/assets/mazukios.png)
+
+
 ## FAQ
 
 #### Нужен ли мне Python в системе?
