@@ -1,5 +1,5 @@
 
-# MazukiOS
+# MazukiOS (python ver, outdated)
 
 MazukiOS это простая операционная система написанная на Python
 
