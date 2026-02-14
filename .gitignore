@@ -1,7 +1,6 @@
 compile.sh
 push.sh
 
-build/*
 junk/*
 clion/*
 cmake-build-debug/*
