@@ -9,3 +9,7 @@ cmake-build-debug/*
 CMakeLists.txt
 
 kernel.c
+
+build/*
+!build/mazukios.iso
+!build/kernel.elf
