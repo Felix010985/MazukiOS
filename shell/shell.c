@@ -58,9 +58,9 @@ void shell_main(void) {
         }
         else if (strcmp(input, "c") == 0) {
             cls();
-            cursor_x = 0;
+            // cursor_x = 0;
             // cursor_y = 0;
-            vga_update_cursor();
+            // vga_update_cursor();
         }
         else if (strcmp(input, "time") == 0) {
             print("Not implemented yet!\n", VGA_RED);
