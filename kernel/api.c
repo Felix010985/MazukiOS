@@ -22,9 +22,6 @@ void cls(void) {
         for (int x = 0; x < VGA_WIDTH; x++) {
             vga_putc_color(' ', VGA_LIGHT_GRAY);
         }
-        cursor_x = 0;
-        cursor_y = 0;
-        vga_update_cursor();
     }
 }
 
