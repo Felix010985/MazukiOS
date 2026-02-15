@@ -56,7 +56,7 @@ void shell_main(void) {
         else if (strcmp(input, "cls") == 0) {
             cls();
             cursor_x = 0;
-            cursor_y = 0;          // курсор наверх
+            // cursor_y = 0;          // курсор наверх
             vga_update_cursor();
         }
         else if (strcmp(input, "time") == 0) {
