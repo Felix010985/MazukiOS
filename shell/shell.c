@@ -37,27 +37,27 @@ void shell_main(void) {
         if (strcmp(input, "help") == 0) {
             set_color(VGA_LIGHT_GREEN);
             printf("Available commands:\n"
-                "help     - show help\n"
-                "clear    - clear the screen\n"
+                "help          - show help\n"
+                "c               - clear the screen\n"
                 "shutdown - shutdown the system (poorly implemented)\n"
-                "ver      - show OS version\n"
-                "time     - show current system time\nAwait russian translation soon\n");
+                "ver            - show OS version\n"
+                "time          - show current system time\nAwait russian translation soon\n");
             reset_color();
         }
-        else if (strcmp(input, "clear") == 0) {
-            print("Not implemented yet!\n", VGA_RED);
-        }
+ //       else if (strcmp(input, "clear") == 0) {
+ //           print("Not implemented yet!\n", VGA_RED);
+ //       }
         else if (strcmp(input, "shutdown") == 0) {
             system_shutdown();
         }
         else if (strcmp(input, "ver") == 0) {
             print("MazukiOS 0.1.0\n", VGA_RED);
         }
-        else if (strcmp(input, "cls") == 0) {
+        else if (strcmp(input, "c") == 0) {
             cls();
             // cursor_x = 0;
-            cursor_y = 0;          // курсор наверх
-            vga_update_cursor();
+            // cursor_y = 0;          // курсор наверх
+            // vga_update_cursor();
         }
         else if (strcmp(input, "time") == 0) {
             print("Not implemented yet!\n", VGA_RED);
