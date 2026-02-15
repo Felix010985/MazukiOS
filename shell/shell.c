@@ -53,6 +53,9 @@ void shell_main(void) {
         else if (strcmp(input, "ver") == 0) {
             print("MazukiOS 0.1.0\n", VGA_RED);
         }
+        else if (strcmp(input, "cls") == 0) {
+            cls();
+        }
         else if (strcmp(input, "time") == 0) {
             print("Not implemented yet!\n", VGA_RED);
         }
