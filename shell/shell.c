@@ -36,12 +36,15 @@ void shell_main(void) {
     	}
         if (strcmp(input, "help") == 0) {
             set_color(VGA_LIGHT_GREEN);
-            printf("Available commands:\n"
-                "help          - show help\n"
-                "c               - clear the screen\n"
-                "shutdown - shutdown the system (poorly implemented)\n"
-                "ver            - show OS version\n"
-                "time          - show current system time\nAwait russian translation soon\n");
+            printf(
+                "Available commands:\n"
+                "help       - show help\n"
+                "c          - clear the screen\n"
+                "shutdown   - shutdown the system (poorly implemented)\n"
+                "ver        - show OS version\n"
+                "time       - show current system time\n"
+                "Await russian translation soon\n"
+            );
             reset_color();
         }
  //       else if (strcmp(input, "clear") == 0) {
