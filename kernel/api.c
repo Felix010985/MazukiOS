@@ -18,12 +18,25 @@ void print(const char* str, uint8_t color) {
 }
 
 void cls(void) {
+    int saved_x = cursor_x;  // сохраняем позицию курсора (prompt)
+    int saved_y = cursor_y;
+
+    // временно ставим курсор в верхний левый угол
+    cursor_x = 0;
+    cursor_y = 0;
+
     for (int y = 0; y < VGA_HEIGHT; y++) {
         for (int x = 0; x < VGA_WIDTH; x++) {
             vga_putc_color(' ', VGA_LIGHT_GRAY);
         }
     }
+
+    // восстанавливаем координаты курсора на prompt
+    cursor_x = saved_x;
+    cursor_y = saved_y;
+    vga_update_cursor(); // обновляем курсор
 }
+
 
 // Ввод символа с клавиатуры
 char getcin(void) {
