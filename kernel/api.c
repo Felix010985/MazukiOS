@@ -17,6 +17,14 @@ void print(const char* str, uint8_t color) {
     }
 }
 
+void cls(void) {
+    for (int y = 0; y < VGA_HEIGHT; y++) {
+        for (int x = 0; x < VGA_WIDTH; x++) {
+            vga_putc_color(' ', VGA_LIGHT_GRAY);
+        }
+    }
+}
+
 // Ввод символа с клавиатуры
 char getcin(void) {
     return keyboard_getc();

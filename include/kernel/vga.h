@@ -1,4 +1,6 @@
 #pragma once
+#define VGA_WIDTH 80
+#define VGA_HEIGHT 25
 
 typedef enum {
     VGA_BLACK = 0x0,

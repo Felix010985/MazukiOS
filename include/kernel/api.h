@@ -7,6 +7,7 @@
 
 void putc(char c);
 void print(const char* str, uint8_t color);
+void cls(void);
 char getcin(void);
 void read_line(char* buffer, uint8_t color);
 int strcmp(const char* a, const char* b);
