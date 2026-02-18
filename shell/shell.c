@@ -2,6 +2,7 @@
 #include "kernel/api.h"
 #include "kernel/power.h"
 #include "kernel/vga.h"
+#include "kernel/serial.h"
 #include <stdbool.h>
 #include "kernel/filesystem.h"
 #include <libc.h>
@@ -35,6 +36,7 @@ void shell_main(void) {
         continue;
     	}
         if (strcmp(input, "help") == 0) {
+            puts_com1("cmd: help!\n");
             set_color(VGA_LIGHT_GREEN);
             printf(
                 "Available commands:\n"
@@ -51,25 +53,31 @@ void shell_main(void) {
  //           print("Not implemented yet!\n", VGA_RED);
  //       }
         else if (strcmp(input, "shutdown") == 0) {
+            puts_com1("cmd: shutdown!\n");
             system_shutdown();
         }
         else if (strcmp(input, "ver") == 0) {
+            puts_com1("cmd: ver!\n");
             print("MazukiOS 0.1.0\n", VGA_RED);
         }
         else if (strcmp(input, "c") == 0) {
+            puts_com1("cmd: c!\n");
             cls();
             // cursor_x = 0;
             // cursor_y = 0;
             // vga_update_cursor();
         }
         else if (strcmp(input, "time") == 0) {
+            puts_com1("cmd: time!\n");
             print("Not implemented yet!\n", VGA_RED);
         }
         else if (strcmp(input, "reboot") == 0) {
+            puts_com1("cmd: reboot!\n");
             // второй shutdown и заглушка для reboot
             shutdown_by_panic();
         }
         else if (strcmp(input, "write") == 0) {
+            puts_com1("cmd: write!\n");
             int f = fs_create("test.txt");
 
             unsigned char data[] = "Hello, MazukiOS!";
@@ -84,6 +92,8 @@ void shell_main(void) {
             print("\n", VGA_LIGHT_GRAY);
         }
 		else {
+            puts_com1("cmd: ");
+            puts_com1(input);
 			print("Unrecognized command: ", VGA_LIGHT_RED);
             print(input, VGA_LIGHT_RED);
             print("\n", VGA_LIGHT_GRAY);
