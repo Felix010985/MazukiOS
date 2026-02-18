@@ -1,8 +1,12 @@
 #include <stdint.h>
 #include "kernel/api.h"
+#include "kernel/serial.h"
 #include "shell.h"
 
+
 void kernel_main(void) {
+    init_serial();
+    puts_com1("COM1 Succesfully initialized!\n");
 	shell_main();
     //volatile uint16_t* vga = (uint16_t*)0xB8000;
 	//char input[MAX_INPUT];
