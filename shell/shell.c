@@ -94,6 +94,7 @@ void shell_main(void) {
 		else {
             puts_com1("cmd: ");
             puts_com1(input);
+            puts_com1("\n");
 			print("Unrecognized command: ", VGA_LIGHT_RED);
             print(input, VGA_LIGHT_RED);
             print("\n", VGA_LIGHT_GRAY);
