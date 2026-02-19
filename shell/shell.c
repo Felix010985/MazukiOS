@@ -53,31 +53,43 @@ void shell_main(void) {
  //           print("Not implemented yet!\n", VGA_RED);
  //       }
         else if (strcmp(input, "shutdown") == 0) {
-            puts_com1("cmd: shutdown!\n");
+            puts_com1("cmd: ");
+            puts_com1(input);
+            puts_com1("!\n");
             system_shutdown();
         }
         else if (strcmp(input, "ver") == 0) {
-            puts_com1("cmd: ver!\n");
+            puts_com1("cmd: ");
+            puts_com1(input);
+            puts_com1("!\n");
             print("MazukiOS 0.1.0\n", VGA_RED);
         }
         else if (strcmp(input, "c") == 0) {
-            puts_com1("cmd: c!\n");
+            puts_com1("cmd: ");
+            puts_com1(input);
+            puts_com1("!\n");
             cls();
             // cursor_x = 0;
             // cursor_y = 0;
             // vga_update_cursor();
         }
         else if (strcmp(input, "time") == 0) {
-            puts_com1("cmd: time!\n");
+            puts_com1("cmd: ");
+            puts_com1(input);
+            puts_com1("!\n");
             print("Not implemented yet!\n", VGA_RED);
         }
         else if (strcmp(input, "reboot") == 0) {
-            puts_com1("cmd: reboot!\n");
+            puts_com1("cmd: ");
+            puts_com1(input);
+            puts_com1("!\n");
             // второй shutdown и заглушка для reboot
             shutdown_by_panic();
         }
         else if (strcmp(input, "write") == 0) {
-            puts_com1("cmd: write!\n");
+            puts_com1("cmd: ");
+            puts_com1(input);
+            puts_com1("!\n");
             int f = fs_create("test.txt");
 
             unsigned char data[] = "Hello, MazukiOS!";
