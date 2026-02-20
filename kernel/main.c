@@ -8,7 +8,6 @@ void kernel_main(void) {
     init_serial();
     puts_com1("COM1 Succesfully initialized!\n");
 	shell_main();
-    puts_com1("Shell loaded!\n");
     //volatile uint16_t* vga = (uint16_t*)0xB8000;
 	//char input[MAX_INPUT];
     //print("Hello People thats The Stacker of The Tesla\n", VGA_LIGHT_GRAY);

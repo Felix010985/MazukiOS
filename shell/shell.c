@@ -19,6 +19,7 @@ bool is_blank(const char* str) {
 }
 
 void shell_main(void) {
+    puts_com1("Shell loaded!\n");
     char input[128];
     const char art[] =
     ",--.   ,--.                       ,--.    ,--. ,-----.  ,---.\n"
