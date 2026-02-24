@@ -22,6 +22,9 @@ bool is_blank(const char* str) {
 void shell_main(void) {
     puts_com1("Shell loaded!\n");
     char input[128];
+    char user[8]
+    printf("Enter your username for the session: ")
+    read_line(user, VGA_LIGHT_GRAY);
     const char art[] =
     ",--.   ,--.                       ,--.    ,--. ,-----.  ,---.\n"
     "|   `.'   | ,--,--.,-----.,--.,--.|  |,-. `--''  .-.  ''   .-'\n"
@@ -30,7 +33,9 @@ void shell_main(void) {
     "`--'   `--' `--`--'`-----' `----' `--'`--'`--' `-----' `-----'\n\n";
     print(art, VGA_LIGHT_GREEN);
     while (1) {
-        print("user$", VGA_LIGHT_GREEN);
+        // print("user$", VGA_LIGHT_GREEN);
+        print(user, VGA_LIGHT_GREEN);
+        print("$", VGA_LIGHT_GREEN);
 		print("root@", VGA_RED);
 		print("LiveCD: ", VGA_MAGENTA);
         read_line(input, VGA_LIGHT_GRAY);
@@ -113,6 +118,7 @@ void shell_main(void) {
             printf("Did you do it? ");
             read_line(input, VGA_LIGHT_GRAY);
             if (strcmp(input, "i did") == 0) {
+                printf("Good boy\n");
                 continue;
             }
             else {
