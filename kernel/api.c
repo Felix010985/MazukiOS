@@ -17,12 +17,19 @@ void print(const char* str, uint8_t color) {
     }
 }
 
+// Очистка экрана
 void cls(void) {
-    for (int y = 0; y < VGA_HEIGHT; y++) {
-        for (int x = 0; x < VGA_WIDTH; x++) {
-            vga_putc_color(' ', VGA_LIGHT_GRAY);
-        }
+    uint16_t *terminal_buffer = (uint16_t *)0xB8000;
+    uint16_t blank = (VGA_LIGHT_GRAY << 8) | ' ';
+
+    for (int i = 0; i < VGA_WIDTH * VGA_HEIGHT; i++) {
+        terminal_buffer[i] = blank;
     }
+
+    cursor_x = 0;
+    cursor_y = 0;
+
+    vga_update_cursor();
 }
 
 // Ввод символа с клавиатуры
