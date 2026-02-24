@@ -25,6 +25,9 @@ void shell_main(void) {
     char user[8];
     printf("Enter your username for the session: ");
     read_line(user, VGA_LIGHT_GRAY);
+    if (is_blank(user)) {
+        printf("username is empty!\n");
+    }
     cls();
     const char art[] =
     ",--.   ,--.                       ,--.    ,--. ,-----.  ,---.\n"
