@@ -23,18 +23,18 @@ void shell_main(void) {
     puts_com1("Shell loaded!\n");
     char input[128];
     char user[8];
-    printf("Enter your username for the session: ");
     while (1) {
+        printf("Enter your username for the session: ");
         read_line(user, VGA_LIGHT_GRAY);
         if (is_blank(user)) {
             printf("username is empty!\n");
-            continue;
+            continue; // продолжить исполнение цикла
         }
         else {
-            break;
+            break; // выход из цикла с вводом в основной цикл shell
         }
     }
-    cls();
+    cls(); // очистка экрана, пока что сдвигает странно...
     const char art[] =
     ",--.   ,--.                       ,--.    ,--. ,-----.  ,---.\n"
     "|   `.'   | ,--,--.,-----.,--.,--.|  |,-. `--''  .-.  ''   .-'\n"
