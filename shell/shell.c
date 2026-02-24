@@ -22,8 +22,8 @@ bool is_blank(const char* str) {
 void shell_main(void) {
     puts_com1("Shell loaded!\n");
     char input[128];
-    char user[8]
-    printf("Enter your username for the session: ")
+    char user[8];
+    printf("Enter your username for the session: ");
     read_line(user, VGA_LIGHT_GRAY);
     const char art[] =
     ",--.   ,--.                       ,--.    ,--. ,-----.  ,---.\n"
