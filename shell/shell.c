@@ -76,9 +76,9 @@ void shell_main(void) {
             puts_com1("cmd: ");
             puts_com1(input);
             puts_com1("!\n");
+            cursor_x = 0;
+            cursor_y = 0;
             cls();
-            // cursor_x = 0;
-            // cursor_y = 0;
             // vga_update_cursor();
         }
         else if (strcmp(input, "time") == 0) {
