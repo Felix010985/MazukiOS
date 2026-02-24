@@ -25,6 +25,7 @@ void shell_main(void) {
     char user[8];
     printf("Enter your username for the session: ");
     read_line(user, VGA_LIGHT_GRAY);
+    cls();
     const char art[] =
     ",--.   ,--.                       ,--.    ,--. ,-----.  ,---.\n"
     "|   `.'   | ,--,--.,-----.,--.,--.|  |,-. `--''  .-.  ''   .-'\n"
