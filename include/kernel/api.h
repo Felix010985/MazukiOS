@@ -16,3 +16,9 @@ void* malloc(size_t size);
 void free(void* ptr);
 
 uint32_t k_get_ticks(void);
+
+// static int current_color = VGA_LIGHT_GRAY;
+
+void set_color(int color);
+
+void reset_color();

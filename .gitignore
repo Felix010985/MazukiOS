@@ -5,6 +5,7 @@ junk/*
 clion/*
 cmake-build-debug/*
 .idea/*
+include/libc.h
 
 CMakeLists.txt
 

@@ -5,7 +5,8 @@
 #include "kernel/serial.h"
 #include <stdbool.h>
 #include "kernel/filesystem.h"
-#include <libc.h>
+#include <stdio.h>
+// #include <libc.h>
 // #include <string.h>
 
 bool is_blank(const char* str) {

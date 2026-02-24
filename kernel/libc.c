@@ -1,4 +1,4 @@
-#include "libc.h"
+// #include "libc.h"
 #include "kernel/api.h"
 #include "kernel/vga.h"
 #include <stdarg.h>
