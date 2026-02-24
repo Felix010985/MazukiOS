@@ -109,13 +109,14 @@ void shell_main(void) {
             puts_com1("cmd: ");
             puts_com1(input);
             puts_com1("!\n");
-            printf("D o  p u s h u p s\nNOW!");
+            printf("D o  p u s h u p s\nNOW!\n");
+            printf("Did you do it? ");
             read_line(input, VGA_LIGHT_GRAY);
             if (strcmp(input, "i did") == 0) {
                 continue;
             }
             else {
-                printf("I didnt hear you but i count that as done");
+                printf("I didnt hear you but i count that as done\n");
             }
         }
 		else {
