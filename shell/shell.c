@@ -30,6 +30,9 @@ void shell_main(void) {
             printf("username is empty!\n");
             continue;
         }
+        else {
+            break;
+        }
     }
     cls();
     const char art[] =
