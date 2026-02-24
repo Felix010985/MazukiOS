@@ -105,6 +105,19 @@ void shell_main(void) {
             print(file_table[f].name, VGA_LIGHT_GRAY);
             print("\n", VGA_LIGHT_GRAY);
         }
+        else if (strcmp(input, "pushup") == 0) {
+            puts_com1("cmd: ");
+            puts_com1(input);
+            puts_com1("!\n");
+            printf("D o  p u s h u p s\nNOW!");
+            read_line(input, VGA_LIGHT_GRAY);
+            if (strcmp(input, "i did") == 0) {
+                continue;
+            }
+            else {
+                printf("I didnt hear you but i count that as done");
+            }
+        }
 		else {
             puts_com1("cmd: ");
             puts_com1(input);
