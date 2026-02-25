@@ -125,3 +125,79 @@ void printf(const char* fmt, ...) {
 
     va_end(args);
 }
+
+int scanf(const char *fmt, ...) {
+    char buffer[MAX_INPUT];
+    read_line(buffer, current_color);
+
+    const char *p = buffer;
+    va_list args;
+    va_start(args, fmt);
+
+    int assigned = 0;
+
+    for (int i = 0; fmt[i]; i++) {
+        if (fmt[i] == '%' && fmt[i+1]) {
+            i++;
+            if (fmt[i] == 'd') {
+                int *out = va_arg(args, int *);
+                while (*p && (*p == ' ' || *p == '\t')) p++;
+                int sign = 1, val = 0;
+                if (*p == '-') { sign = -1; p++; }
+                else if (*p == '+') { p++; }
+                int found = 0;
+                while (*p >= '0' && *p <= '9') {
+                    val = val * 10 + (*p - '0');
+                    p++;
+                    found = 1;
+                }
+                if (found) { *out = val * sign; assigned++; }
+            } else if (fmt[i] == 'u') {
+                unsigned int *out = va_arg(args, unsigned int *);
+                while (*p && (*p == ' ' || *p == '\t')) p++;
+                unsigned int val = 0;
+                int found = 0;
+                while (*p >= '0' && *p <= '9') {
+                    val = val * 10 + (*p - '0');
+                    p++;
+                    found = 1;
+                }
+                if (found) { *out = val; assigned++; }
+            } else if (fmt[i] == 'x') {
+                unsigned int *out = va_arg(args, unsigned int *);
+                while (*p && (*p == ' ' || *p == '\t')) p++;
+                unsigned int val = 0;
+                int found = 0;
+                while ((*p >= '0' && *p <= '9') ||
+                       (*p >= 'a' && *p <= 'f') ||
+                       (*p >= 'A' && *p <= 'F')) {
+                    char c = *p;
+                    int digit;
+                    if (c >= '0' && c <= '9') digit = c - '0';
+                    else if (c >= 'a' && c <= 'f') digit = c - 'a' + 10;
+                    else digit = c - 'A' + 10;
+                    val = val * 16 + digit;
+                    p++;
+                    found = 1;
+                }
+                if (found) { *out = val; assigned++; }
+            } else if (fmt[i] == 's') {
+                char *out = va_arg(args, char *);
+                while (*p && (*p == ' ' || *p == '\t')) p++;
+                if (*p) {
+                    while (*p && *p != ' ' && *p != '\t' && *p != '\n') {
+                        *out++ = *p++;
+                    }
+                    *out = 0;
+                    assigned++;
+                }
+            } else if (fmt[i] == 'c') {
+                char *out = va_arg(args, char *);
+                if (*p) { *out = *p++; assigned++; }
+            }
+        }
+    }
+
+    va_end(args);
+    return assigned;
+}
