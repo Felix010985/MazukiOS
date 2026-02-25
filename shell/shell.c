@@ -25,7 +25,8 @@ void shell_main(void) {
     char user[8];
     while (1) {
         printf("Enter your username for the session: ");
-        read_line(user, VGA_LIGHT_GRAY);
+        // read_line(user, VGA_LIGHT_GRAY);
+        scanf("%s", user);
         if (is_blank(user)) {
             printf("username is empty!\n");
             continue; // продолжить исполнение цикла
