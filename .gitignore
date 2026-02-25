@@ -6,6 +6,10 @@ clion/*
 cmake-build-debug/*
 .idea/*
 include/libc.h
+kernel/gdt.c
+kernel/idt.c
+include/kernel/gdt.h
+include/kernel/idt.h
 
 CMakeLists.txt
 
