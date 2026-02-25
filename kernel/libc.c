@@ -201,3 +201,19 @@ int scanf(const char *fmt, ...) {
     va_end(args);
     return assigned;
 }
+
+char *fgets(char *buf, int size, void *unused_stream) {
+    if (!buf || size <= 0) return NULL;
+
+    read_line(buf, current_color);
+
+    for (int i = 0; i < size; i++) {
+        if (buf[i] == '\n' || buf[i] == '\r') {
+            buf[i] = 0;
+            break;
+        }
+        if (buf[i] == 0) break;
+    }
+
+    return buf;
+}

@@ -1,8 +1,8 @@
 #ifndef LIBC_H
 #define LIBC_H
 
-void set_color(int color);
-void reset_color(void);
+// void set_color(int color);
+// void reset_color(void);
 void print_str(const char* s);
 void print_num(int n);
 void printf(const char* fmt, ...);
