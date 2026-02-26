@@ -31,7 +31,7 @@ void cls(void) {
 
     vga_update_cursor();
     cursor_x = 0;
-    cursor_y = 0;
+    cursor_y = 0; // lowkirkuenly нихера не делает lmao
 }
 
 // Ввод символа с клавиатуры

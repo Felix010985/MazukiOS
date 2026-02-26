@@ -25,6 +25,7 @@ void shell_main(void) {
     char user[8];
     while (1) {
         printf("Enter your username for the session: ");
+        //*НЕУДАЧНЫЕ ПОПЫТКИ*\\
         // read_line(user, VGA_LIGHT_GRAY);
         // scanf("%s", user);
         fgets(user, MAX_INPUT, NULL);
