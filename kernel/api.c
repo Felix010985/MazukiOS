@@ -30,6 +30,8 @@ void cls(void) {
     cursor_y = 0;
 
     vga_update_cursor();
+    cursor_x = 0;
+    cursor_y = 0;
 }
 
 // Ввод символа с клавиатуры
