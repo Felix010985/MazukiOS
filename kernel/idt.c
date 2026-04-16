@@ -12,12 +12,24 @@ void idt_set_gate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags) {
     idt[num].flags = flags;
 }
 
-void idt_install(void) {
-    idtp.limit = sizeof(idt) - 1;
-    idtp.base  = (uint32_t)&idt;
-
-    for (int i = 0; i < 256; i++)
-        idt_set_gate(i, 0, 0x08, 0x8E); // временно все прерывания указывают на NULL
-
-    asm volatile("lidt (%0)" : : "r"(&idtp));
+__attribute__((naked)) void default_interrupt_handler() {
+    __asm__ __volatile__ (
+        "cli\n\t"
+        "hlt\n\t"
+        "jmp ."
+    );
 }
+
+
+void idt_install(void) {
+    idtp.limit = (sizeof(struct idt_entry) * 256) - 1;
+    idtp.base  = (uint32_t)&idt;
+    uint32_t handler_addr = (uint32_t)default_interrupt_handler;
+
+    for (int i = 0; i < 256; i++) {
+        idt_set_gate(i, handler_addr, 0x08, 0x8E);
+    }
+
+    __asm__ __volatile__("lidt (%0)" : : "r"(&idtp));
+}
+// Должно работать

@@ -23,5 +23,16 @@ void gdt_install(void) {
     gdt_set_entry(3, 0, 0xFFFFFFFF, 0xFA, 0xCF); // User code (ring3)
     gdt_set_entry(4, 0, 0xFFFFFFFF, 0xF2, 0xCF); // User data (ring3)
 
-    asm volatile("lgdt (%0)" : : "r"(&gp));
+        asm volatile (
+        "lgdt %0\n\t"
+        "ljmp $0x08, $1f\n\t"
+        "1:\n\t"
+        "mov $0x10, %%ax\n\t"
+        "mov %%ax, %%ds\n\t"
+        "mov %%ax, %%es\n\t"
+        "mov %%ax, %%fs\n\t"
+        "mov %%ax, %%gs\n\t"
+        "mov %%ax, %%ss\n\t"
+        : : "m"(gp) : "ax", "memory"
+    );
 }
