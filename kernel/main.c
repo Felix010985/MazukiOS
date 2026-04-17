@@ -55,6 +55,10 @@ void write_tss(int num, uint16_t ss0, uint32_t esp0) {
 
 void jump_to_user(void* shell_ptr, uint32_t user_esp) {
     asm volatile(
+        "cli \n\t"
+        "mov %0, %%ebx \n\t"    // Сохраняем shell_ptr в ebx
+        "mov %1, %%edx \n\t"    // Сохраняем user_esp в edx
+
         "mov $0x23, %%ax \n\t"
         "mov %%ax, %%ds \n\t"
         "mov %%ax, %%es \n\t"
@@ -62,20 +66,19 @@ void jump_to_user(void* shell_ptr, uint32_t user_esp) {
         "mov %%ax, %%gs \n\t"
 
         "pushl $0x23 \n\t"      // SS
-        "pushl %1 \n\t"         // ESP (берем из второго аргумента user_esp)
+        "pushl %%edx \n\t"      // ESP
         "pushfl \n\t"
         "popl %%eax \n\t"
-        "orl $0x3200, %%eax \n\t"
+        "orl $0x3200, %%eax \n\t" // IOPL + IF
         "pushl %%eax \n\t"
         "pushl $0x1B \n\t"      // CS
-        "pushl %0 \n\t"         // EIP (берем из первого аргумента shell_ptr)
+        "pushl %%ebx \n\t"      // EIP
         "iret"
         :
-        : "r"(shell_ptr), "r"(user_esp) // %0 - это shell_ptr, %1 - это user_esp
-        : "ax", "memory"
+        : "r"(shell_ptr), "r"(user_esp)
+        : "eax", "ebx", "edx", "memory"
     );
 }
-
 
 void kernel_main(void) {
     gdt_install();
