@@ -82,6 +82,7 @@ void jump_to_user(void* shell_ptr, uint32_t user_esp) {
 
 void kernel_main(void) {
     gdt_install();
+    idt_install();
 
     write_tss(5, 0x10, current_esp());
 

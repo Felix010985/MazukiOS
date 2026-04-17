@@ -14,7 +14,7 @@ void gdt_set_entry(int num, uint32_t base, uint32_t limit, uint8_t access, uint8
 }
 
 void gdt_install(void) {
-    gp.limit = sizeof(gdt) - 1;
+    gp.limit = (sizeof(struct gdt_entry) * 6) - 1;
     gp.base  = (uint32_t)&gdt;
 
     gdt_set_entry(0, 0, 0, 0, 0);           // NULL
