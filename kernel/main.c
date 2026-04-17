@@ -82,7 +82,7 @@ void kernel_main(void) {
 
     init_serial();
     puts_com1("COM1 Succesfully initialized!\n");
-
+    asm volatile("cli");
     jump_to_user(&shell_main);
 
     for (;;) { asm volatile("hlt"); }
