@@ -65,7 +65,7 @@ void jump_to_user(void* shell_ptr, uint32_t user_esp) {
         "pushl %1 \n\t"         // ESP (берем из второго аргумента user_esp)
         "pushfl \n\t"
         "popl %%eax \n\t"
-        "orl $0x200, %%eax \n\t"
+        "orl $0x3200, %%eax \n\t"
         "pushl %%eax \n\t"
         "pushl $0x1B \n\t"      // CS
         "pushl %0 \n\t"         // EIP (берем из первого аргумента shell_ptr)
