@@ -1,6 +1,6 @@
 #include "kernel/gdt.h"
 
-struct gdt_entry gdt[5];
+struct gdt_entry gdt[6];
 struct gdt_ptr gp;
 
 void gdt_set_entry(int num, uint32_t base, uint32_t limit, uint8_t access, uint8_t gran) {
