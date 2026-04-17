@@ -6,6 +6,7 @@
 #include "kernel/idt.h"
 
 void gdt_set_entry(int num, uint32_t base, uint32_t limit, uint8_t access, uint8_t gran);
+uint8_t user_stack[4096];
 
 extern void shell_main(void);
 extern void init_serial(void);
@@ -52,26 +53,29 @@ void write_tss(int num, uint16_t ss0, uint32_t esp0) {
     tss_entry.esp0 = esp0;
 }
 
-void jump_to_user(void* shell_ptr) {
+void jump_to_user(void* shell_ptr, uint32_t user_esp) {
     asm volatile(
         "mov $0x23, %%ax \n\t"
         "mov %%ax, %%ds \n\t"
         "mov %%ax, %%es \n\t"
         "mov %%ax, %%fs \n\t"
         "mov %%ax, %%gs \n\t"
-        "mov %%esp, %%eax \n\t"
+
         "pushl $0x23 \n\t"      // SS
-        "pushl %%eax \n\t"     // ESP
+        "pushl %1 \n\t"         // ESP (берем из второго аргумента user_esp)
         "pushfl \n\t"
         "popl %%eax \n\t"
-        "orl $0x200, %%eax \n\t" // Включаем прерывания (IF)
+        "orl $0x200, %%eax \n\t"
         "pushl %%eax \n\t"
         "pushl $0x1B \n\t"      // CS
-        "pushl %0 \n\t"         // EIP
+        "pushl %0 \n\t"         // EIP (берем из первого аргумента shell_ptr)
         "iret"
-        : : "r"(shell_ptr) : "ax"
+        :
+        : "r"(shell_ptr), "r"(user_esp) // %0 - это shell_ptr, %1 - это user_esp
+        : "ax", "memory"
     );
 }
+
 
 void kernel_main(void) {
     gdt_install();
@@ -83,7 +87,7 @@ void kernel_main(void) {
     init_serial();
     puts_com1("COM1 Succesfully initialized!\n");
     asm volatile("cli");
-    jump_to_user(&shell_main);
+    jump_to_user(&shell_main, (uint32_t)user_stack + 4096);
 
     for (;;) { asm volatile("hlt"); }
 }
