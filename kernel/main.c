@@ -28,13 +28,18 @@ void pic_init(void) {
 __attribute__((naked)) void keyboard_handler_asm(void) {
     __asm__ __volatile__ (
         "pusha \n\t"
+
+        "mov $0x3F8, %dx \n\t"
+        "mov $0x21, %al \n\t"
+        "outb %al, (%dx) \n\t"
+
         "call keyboard_handler_c \n\t"
 
-        "movb $0x20, %al \n\t"   // Один процент!
-        "outb %al, $0x20 \n\t"   // Один процент!
+        "movb $0x20, %al \n\t"
+        "outb %al, $0x20 \n\t"
 
         "popa \n\t"
-        "iret"                   // Просто iret (компилятор сам сделает его 32-битным)
+        "iret"
     );
 }
 
