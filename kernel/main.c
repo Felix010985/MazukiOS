@@ -1,22 +1,42 @@
 #include "kernel/gdt.h"
+#include "kernel/io.h"
 #include <stdint.h>
 #include <stddef.h>
 #include <string.h>
-#include "kernel/gdt.h"
 #include "kernel/idt.h"
 
 void gdt_set_entry(int num, uint32_t base, uint32_t limit, uint8_t access, uint8_t gran);
+
+// Выделяем два четких, раздельных стека
 uint8_t user_stack[4096];
+uint8_t kernel_stack[4096]; // Выделяем чистый стек специально для ядра!
 
 extern void shell_main(void);
 extern void init_serial(void);
 extern void puts_com1(const char* s);
+extern void keyboard_handler_c(void);
+// Инициализация PIC8259, чтобы сдвинуть аппаратные прерывания на вектор 0x20
+void pic_init(void) {
+    outb(0x20, 0x11); outb(0xA0, 0x11); // ICW1: старт инициализации
+    outb(0x21, 0x20); outb(0xA1, 0x28); // ICW2: базовые векторы (Мастер=0x20, Слейв=0x28)
+    outb(0x21, 0x04); outb(0xA1, 0x02); // ICW3: каскадное соединение
+    outb(0x21, 0x01); outb(0xA1, 0x01); // ICW4: режим 8086
+    outb(0x21, 0xFD); outb(0xA1, 0xFF); // Маска: разрешаем ТОЛЬКО клавиатуру (IRQ1)
+}
 
-// void* memset(void* dst, int value, unsigned int n) {
-//     unsigned char* d = dst;
-//     for (unsigned int i = 0; i < n; i++) d[i] = (unsigned char)value;
-//     return dst;
-// }
+// Чистый ассемблерный обработчик для IDT
+__attribute__((naked)) void keyboard_handler_asm(void) {
+    __asm__ __volatile__ (
+        "pusha \n\t"
+        "call keyboard_handler_c \n\t"
+
+        "movb $0x20, %al \n\t"   // Один процент!
+        "outb %al, $0x20 \n\t"   // Один процент!
+
+        "popa \n\t"
+        "iret"                   // Просто iret (компилятор сам сделает его 32-битным)
+    );
+}
 
 
 struct tss_entry_struct {
@@ -31,18 +51,6 @@ struct tss_entry_struct {
 
 struct tss_entry_struct tss_entry;
 
-// void *memset(void *dest, int val, uint32_t len) {
-//     unsigned char *ptr = dest;
-//     while (len-- > 0) *ptr++ = val;
-//     return dest;
-// }
-
-uint32_t current_esp() {
-    uint32_t esp;
-    asm volatile("mov %%esp, %0" : "=r"(esp));
-    return esp;
-}
-
 void write_tss(int num, uint16_t ss0, uint32_t esp0) {
     uint32_t base = (uint32_t)&tss_entry;
     uint32_t limit = sizeof(tss_entry) - 1;
@@ -56,8 +64,8 @@ void write_tss(int num, uint16_t ss0, uint32_t esp0) {
 void jump_to_user(void* shell_ptr, uint32_t user_esp) {
     asm volatile(
         "cli \n\t"
-        "mov %0, %%ebx \n\t"    // Сохраняем shell_ptr в ebx
-        "mov %1, %%edx \n\t"    // Сохраняем user_esp в edx
+        "mov %0, %%ebx \n\t"
+        "mov %1, %%edx \n\t"
 
         "mov $0x23, %%ax \n\t"
         "mov %%ax, %%ds \n\t"
@@ -69,7 +77,7 @@ void jump_to_user(void* shell_ptr, uint32_t user_esp) {
         "pushl %%edx \n\t"      // ESP
         "pushfl \n\t"
         "popl %%eax \n\t"
-        "orl $0x3200, %%eax \n\t" // IOPL + IF
+        "orl $0x3200, %%eax \n\t" // IOPL (биты 12,13) + IF (бит 9)
         "pushl %%eax \n\t"
         "pushl $0x1B \n\t"      // CS
         "pushl %%ebx \n\t"      // EIP
@@ -84,14 +92,20 @@ void kernel_main(void) {
     gdt_install();
     idt_install();
 
-    write_tss(5, 0x10, current_esp());
+    extern void idt_set_gate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags);
+    idt_set_gate(0x21, (uint32_t)keyboard_handler_asm, 0x08, 0xEE);
+
+    pic_init();
+
+    write_tss(5, 0x10, (uint32_t)kernel_stack + 4096);
 
     asm volatile("ltr %%ax" : : "a"(0x2B));
 
     init_serial();
-    puts_com1("COM1 Succesfully initialized!\n");
-    asm volatile("cli");
+    puts_com1("COM1 Successfully initialized!\n");
+
     jump_to_user(&shell_main, (uint32_t)user_stack + 4096);
 
     for (;;) { asm volatile("hlt"); }
 }
+// ПОДСКАЗКИ ДЛЯ ДРУГИХ КТО БУДЕТ КОПАТЬ ЭТОТ КОД

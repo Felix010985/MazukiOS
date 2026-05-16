@@ -1,3 +1,4 @@
+// shell для проверки взаимодействия с ядром можно игнорировать
 #include "shell.h"
 #include "kernel/api.h"
 #include "kernel/power.h"

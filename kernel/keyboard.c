@@ -1,14 +1,14 @@
 #include "kernel/keyboard.h"
+#include "kernel/io.h"
 #include <stdint.h>
 
 #define KBD_DATA   0x60
 #define KBD_STATUS 0x64
 
-static inline uint8_t inb(uint16_t port) {
-    uint8_t ret;
-    __asm__ volatile ("inb %1, %0" : "=a"(ret) : "Nd"(port));
-    return ret;
-}
+#define KBD_BUFFER_SIZE 256
+static char kbd_buffer[KBD_BUFFER_SIZE];
+static int kbd_head = 0;
+static int kbd_tail = 0;
 
 static int shift = 0;
 
@@ -28,22 +28,42 @@ static const char scancode_shift_table[128] = {
     '*',0,' ',0,
 };
 
-static void cpu_relax(void) {
-    for (volatile int i=0; i<1000; i++);
+static void kbd_push(char c) {
+    int next = (kbd_head + 1) % KBD_BUFFER_SIZE;
+    if (next != kbd_tail) {
+        kbd_buffer[kbd_head] = c;
+        kbd_head = next;
+    }
+}
+
+void keyboard_handler_c(void) {
+    if (inb(KBD_STATUS) & 1) {
+        uint8_t sc = inb(KBD_DATA);
+
+        if (sc & 0x80) {
+            sc &= 0x7F;
+            if (sc == 42 || sc == 54) shift = 0;
+            return;
+        }
+        if (sc == 42 || sc == 54) {
+            shift = 1;
+            return;
+        }
+
+        char c = shift ? scancode_shift_table[sc] : scancode_table[sc];
+        if (c) {
+            kbd_push(c);
+        }
+    }
 }
 
 char keyboard_getc(void) {
     while (1) {
-        if (inb(KBD_STATUS) & 1) {
-            uint8_t sc = inb(KBD_DATA);
-
-            if (sc & 0x80) { sc &= 0x7F; if (sc==42||sc==54) shift=0; continue; }
-            if (sc==42||sc==54) { shift=1; continue; }
-
-            char c = shift ? scancode_shift_table[sc] : scancode_table[sc];
-            if (c) return c;
-        } else {
-            cpu_relax();
+        if (kbd_head != kbd_tail) {
+            char c = kbd_buffer[kbd_tail];
+            kbd_tail = (kbd_tail + 1) % KBD_BUFFER_SIZE;
+            return c;
         }
+        __asm__ volatile("hlt");
     }
 }
