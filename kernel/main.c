@@ -29,19 +29,22 @@ __attribute__((naked)) void keyboard_handler_asm(void) {
     __asm__ __volatile__ (
         "pusha \n\t"
 
-        "mov $0x3F8, %dx \n\t"
-        "mov $0x21, %al \n\t"
-        "outb %al, (%dx) \n\t"
+        // Жесткий и надежный вывод символа '!' (0x21) прямо в порт COM1
+        "movb $0x21, %al \n\t"
+        "outb %al, $0x3F8 \n\t"
 
         "call keyboard_handler_c \n\t"
 
+        // Сбрасываем контроллеры прерываний
         "movb $0x20, %al \n\t"
         "outb %al, $0x20 \n\t"
+        "outb %al, $0xA0 \n\t"
 
         "popa \n\t"
         "iret"
     );
 }
+
 
 
 struct tss_entry_struct {
