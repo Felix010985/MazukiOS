@@ -113,7 +113,8 @@ void kernel_main(void) {
     puts_com1("COM1 Successfully initialized!\n");
 
     asm volatile("sti"); // Разрешаем прерывания процессору
-    jump_to_user(&shell_main, (uint32_t)user_stack + 4096);
+    shell_main();
+    //jump_to_user(&shell_main, (uint32_t)user_stack + 4096);
 
     for (;;) { asm volatile("hlt"); }
 }
