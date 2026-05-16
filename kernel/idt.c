@@ -6,10 +6,13 @@ struct idt_ptr idtp;
 void idt_set_gate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags) {
     idt[num].base_low  = base & 0xFFFF;
     idt[num].base_high = (base >> 16) & 0xFFFF;
-
     idt[num].sel = sel;
     idt[num].always0 = 0;
     idt[num].flags = flags;
+}
+
+void idt_register_handler(uint8_t vector, uint32_t handler_addr, uint8_t flags) {
+    idt_set_gate(vector, handler_addr, 0x08, flags);
 }
 
 __attribute__((naked)) void default_interrupt_handler() {
@@ -19,7 +22,6 @@ __attribute__((naked)) void default_interrupt_handler() {
         "jmp ."
     );
 }
-
 
 void idt_install(void) {
     idtp.limit = (sizeof(struct idt_entry) * 256) - 1;
@@ -32,4 +34,3 @@ void idt_install(void) {
 
     __asm__ __volatile__("lidt (%0)" : : "r"(&idtp));
 }
-// Должно работать

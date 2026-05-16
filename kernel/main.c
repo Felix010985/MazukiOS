@@ -95,22 +95,30 @@ void jump_to_user(void* shell_ptr, uint32_t user_esp) {
 
 void kernel_main(void) {
     gdt_install();
+
+    // 1. Устанавливаем чистую IDT со всеми дефолтными заглушками
     idt_install();
 
-    extern void idt_set_gate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags);
-    idt_set_gate(0x21, (uint32_t)keyboard_handler_asm, 0x08, 0xEE);
+    // 2. Красиво и динамически регистрируем клавиатуру поверх заглушки
+    extern void idt_register_handler(uint8_t vector, uint32_t handler_addr, uint8_t flags);
+    extern void keyboard_handler_asm(void);
 
+    // Вектор 0x21, адрес ассемблерной обертки, флаг 0xEE для юзермода
+    idt_register_handler(0x21, (uint32_t)keyboard_handler_asm, 0x0EE);
+
+    // 3. Инициализируем контроллер прерываний
     pic_init();
 
     write_tss(5, 0x10, (uint32_t)kernel_stack + 4096);
-
     asm volatile("ltr %%ax" : : "a"(0x2B));
 
     init_serial();
     puts_com1("COM1 Successfully initialized!\n");
 
+    asm volatile("sti"); // Разрешаем прерывания процессору
     jump_to_user(&shell_main, (uint32_t)user_stack + 4096);
 
     for (;;) { asm volatile("hlt"); }
 }
+
 // ПОДСКАЗКИ ДЛЯ ДРУГИХ КТО БУДЕТ КОПАТЬ ЭТОТ КОД
