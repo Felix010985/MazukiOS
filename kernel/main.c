@@ -77,13 +77,13 @@ void jump_to_user(void* shell_ptr, uint32_t user_esp) {
 
         "pushl $0x23 \n\t"      // SS
         "pushl %%edx \n\t"      // ESP
-        "pushfl \n\t"
-        "popl %%eax \n\t"
-        "orl $0x3200, %%eax \n\t" // IOPL (биты 12,13) + IF (бит 9)
-        "pushl %%eax \n\t"
+
+        "pushl $0x3202 \n\t"    // EFLAGS: IOPL=3 (биты 12-13 равны 11), IF=1, Резерв=1
+
         "pushl $0x1B \n\t"      // CS
         "pushl %%ebx \n\t"      // EIP
         "iret"
+
         :
         : "r"(shell_ptr), "r"(user_esp)
         : "eax", "ebx", "edx", "memory"
