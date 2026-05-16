@@ -64,6 +64,6 @@ char keyboard_getc(void) {
             kbd_tail = (kbd_tail + 1) % KBD_BUFFER_SIZE;
             return c;
         }
-        __asm__ volatile("hlt");
+        //__asm__ volatile("hlt");
     }
 }
