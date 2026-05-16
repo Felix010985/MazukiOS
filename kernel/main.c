@@ -27,25 +27,19 @@ void pic_init(void) {
 // Чистый ассемблерный обработчик для IDT
 __attribute__((naked)) void keyboard_handler_asm(void) {
     __asm__ __volatile__ (
-        "pusha \n\t"
+        "pusha \n\t"                  // Сохраняем все регистры
 
-        // Жесткий и надежный вывод символа '!' (0x21) прямо в порт COM1
-        "movb $0x21, %al \n\t"
-        "outb %al, $0x3F8 \n\t"
+        "call keyboard_handler_c \n\t" // Твой рабочий драйвер печатает букву
 
-        "call keyboard_handler_c \n\t"
-
-        // Сбрасываем контроллеры прерываний
+        // Железно заносим 0x20 перед отправкой в порты PIC!
         "movb $0x20, %al \n\t"
-        "outb %al, $0x20 \n\t"
-        "outb %al, $0xA0 \n\t"
+        "outb %al, $0x20 \n\t"         // Сбрасываем Мастер-PIC
+        "outb %al, $0xA0 \n\t"         // Сбрасываем Слейв-PIC
 
-        "popa \n\t"
-        "iret"
+        "popa \n\t"                   // Восстанавливаем регистры
+        "iret"                        // Возвращаемся в шелл крутить бесконечный ввод
     );
 }
-
-
 
 struct tss_entry_struct {
     uint32_t prev_tss; uint32_t esp0; uint32_t ss0; uint32_t esp1;
