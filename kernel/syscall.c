@@ -35,9 +35,13 @@ __attribute__((naked)) void syscall_handler_asm(void) {
         "mov %ax, %ds \n\t"
         "mov %ax, %es \n\t"
 
+        "sti \n\t"
+
         "push %esp \n\t"
         "call syscall_handler_c \n\t"
         "add $4, %esp \n\t"
+
+        "cli \n\t"
 
         "mov $0x23, %ax \n\t"
         "mov %ax, %ds \n\t"
