@@ -1,12 +1,14 @@
 // shell для проверки взаимодействия с ядром можно игнорировать
 #include "shell.h"
-#include "kernel/api.h"
+// #include "kernel/api.h"
+#include "kernel/wrap.h"
 #include "kernel/power.h"
 #include "kernel/vga.h"
 #include "kernel/serial.h"
 #include <stdbool.h>
 #include "kernel/filesystem.h"
 #include <stdio.h>
+#include <mazukios.h>
 // #include <libc.h>
 // #include <string.h>
 
@@ -21,7 +23,7 @@ bool is_blank(const char* str) {
 }
 
 void shell_main(void) {
-    puts_com1("Shell loaded!\n");
+    // puts_com1("Shell loaded!\n");
     char input[128];
     char user[8];
     while (1) {

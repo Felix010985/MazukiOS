@@ -1,5 +1,6 @@
 // #include "libc.h"
-#include "kernel/api.h"
+// #include "kernel/api.h"
+#include "kernel/wrap.h"
 #include "kernel/vga.h"
 #include <stdarg.h>
 

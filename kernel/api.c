@@ -6,19 +6,19 @@
 #define MAX_INPUT 128
 
 // Вывод символа
-void putc(char c) {
+void sys_putc(char c) {
     vga_putc(c);
 }
 
 // Вывод строки
-void print(const char* str, uint8_t color) {
+void sys_print(const char* str, uint8_t color) {
     while (*str) {
         vga_putc_color(*str++, color);
     }
 }
 
 // Очистка экрана
-void cls(void) {
+void sys_cls(void) {
     uint16_t *terminal_buffer = (uint16_t *)0xB8000;
     uint16_t blank = (VGA_LIGHT_GRAY << 8) | ' ';
 
@@ -35,12 +35,12 @@ void cls(void) {
 }
 
 // Ввод символа с клавиатуры
-char getcin(void) {
+char sys_getcin(void) {
     return keyboard_getc();
 }
 
 // Чтение строки с клавиатуры (макс. 128 символов)
-void read_line(char* buffer, uint8_t color) {
+void sys_read_line(char* buffer, uint8_t color) {
     int i = 0;
 
     while (1) {

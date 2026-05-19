@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include "kernel/api.h"
+// #include "kernel/api.h"
 
 static inline void outw(uint16_t port, uint16_t val) {
     __asm__ volatile ("outw %0, %1" : : "a"(val), "Nd"(port));
@@ -8,7 +8,7 @@ static inline void outw(uint16_t port, uint16_t val) {
 void system_shutdown(void) {
     outw(0x604, 0x2000);
 
-    print("System halted\n", VGA_RED);
+    // print("System halted\n", VGA_RED);
     __asm__ volatile("cli");
     for (;;) {
         __asm__ volatile ("hlt");
