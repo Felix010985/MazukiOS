@@ -59,3 +59,22 @@ void panic(const char* msg) {
     puts_com1("\nSYSTEM HALTED\n");
     for (;;) { __asm__ __volatile__("hlt"); }
 }
+
+static __attribute__((naked)) void exception_common_stub(void) {
+    __asm__ __volatile__ (
+        "pusha \n\t"
+        "mov $0x10, %ax \n\t"
+        "mov %ax, %ds \n\t"
+        "mov %ax, %es \n\t"
+
+        "push %esp \n\t"
+        "call kernel_exception_handler \n\t"
+    );
+}
+
+__attribute__((naked)) void exception_gpf(void) {
+    __asm__ __volatile__ (
+        "pushl $13 \n\t"
+        "jmp exception_common_stub \n\t"
+    );
+}

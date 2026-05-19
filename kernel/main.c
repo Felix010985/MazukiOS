@@ -2,6 +2,7 @@
 #include "kernel/io.h"
 #include "kernel/idt.h"
 #include "kernel/pit.h"
+#include "kernel/panic.h"
 
 #include <stdint.h>
 #include <stddef.h>
@@ -14,6 +15,9 @@ extern void keyboard_init(void);
 extern void shell_main(void);
 extern void init_serial(void);
 extern void puts_com1(const char* s);
+
+extern void exception_gpf(void);
+extern void idt_register_handler(uint8_t vector, uint32_t handler_addr, uint8_t flags);
 
 uint8_t user_stack[4096];
 uint8_t kernel_stack[4096];
@@ -68,6 +72,9 @@ __attribute__((naked)) void jump_to_user(void* shell_ptr, uint32_t user_esp) {
 void kernel_main(void) {
     gdt_install();
     idt_install();
+
+    extern void exception_gpf(void);
+    idt_register_handler(13, (uint32_t)exception_gpf, 0x8E);
 
     pic_init();
     keyboard_init();
