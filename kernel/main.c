@@ -41,31 +41,29 @@ void write_tss(int num, uint16_t ss0, uint32_t esp0) {
 }
 
 __attribute__((naked)) void jump_to_user(void* shell_ptr, uint32_t user_esp) {
-    asm volatile(
+    __asm__ __volatile__(
         "cli \n\t"
-        "mov %0, %%ebx \n\t"
-        "mov %1, %%edx \n\t"
+        "movl 4(%%esp), %%ebx \n\t"
+        "movl 8(%%esp), %%edx \n\t"
 
         "mov $0x23, %%ax \n\t"
         "mov %%ax, %%ds \n\t"
         "mov %%ax, %%es \n\t"
         "mov %%ax, %%fs \n\t"
         "mov %%ax, %%gs \n\t"
-
         "pushl $0x23 \n\t"
         "pushl %%edx \n\t"
-
         "pushl $0x0202 \n\t"
-
         "pushl $0x1B \n\t"
         "pushl %%ebx \n\t"
-        "iret"
 
+        "iret \n\t"
         :
-        : "r"(shell_ptr), "r"(user_esp)
+        :
         : "eax", "ebx", "edx", "memory"
     );
 }
+
 
 void kernel_main(void) {
     gdt_install();
