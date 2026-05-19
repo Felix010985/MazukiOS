@@ -85,6 +85,9 @@ void kernel_main(void) {
     keyboard_init();
     pit_init(100);
 
+    extern void syscall_init(void);
+    syscall_init();
+
     write_tss(5, 0x10, (uint32_t)kernel_stack + 4096);
     asm volatile("ltr %%ax" : : "a"(0x28));
 
