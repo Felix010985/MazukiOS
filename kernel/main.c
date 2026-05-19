@@ -57,7 +57,7 @@ __attribute__((naked)) void jump_to_user(void* shell_ptr, uint32_t user_esp) {
         "mov %%ax, %%gs \n\t"
         "pushl $0x23 \n\t"
         "pushl %%edx \n\t"
-        "pushl $0x0202 \n\t"
+        "pushl $0x3202 \n\t"
         "pushl $0x1B \n\t"
         "pushl %%ebx \n\t"
 
