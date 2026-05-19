@@ -1,45 +1,22 @@
 #include "kernel/gdt.h"
 #include "kernel/io.h"
+#include "kernel/idt.h"
+#include "kernel/pit.h"
+
 #include <stdint.h>
 #include <stddef.h>
 #include <string.h>
-#include "kernel/idt.h"
 
 void gdt_set_entry(int num, uint32_t base, uint32_t limit, uint8_t access, uint8_t gran);
-
-// Выделяем два четких, раздельных стека
-uint8_t user_stack[4096];
-uint8_t kernel_stack[4096]; // Выделяем чистый стек специально для ядра!
+extern void pic_init(void);
+extern void keyboard_init(void);
 
 extern void shell_main(void);
 extern void init_serial(void);
 extern void puts_com1(const char* s);
-extern void keyboard_handler_c(void);
-// Инициализация PIC8259, чтобы сдвинуть аппаратные прерывания на вектор 0x20
-void pic_init(void) {
-    outb(0x20, 0x11); outb(0xA0, 0x11); // ICW1: старт инициализации
-    outb(0x21, 0x20); outb(0xA1, 0x28); // ICW2: базовые векторы (Мастер=0x20, Слейв=0x28)
-    outb(0x21, 0x04); outb(0xA1, 0x02); // ICW3: каскадное соединение
-    outb(0x21, 0x01); outb(0xA1, 0x01); // ICW4: режим 8086
-    outb(0x21, 0xFD); outb(0xA1, 0xFF); // Маска: разрешаем ТОЛЬКО клавиатуру (IRQ1)
-}
 
-// Чистый ассемблерный обработчик для IDT
-__attribute__((naked)) void keyboard_handler_asm(void) {
-    __asm__ __volatile__ (
-        "pusha \n\t"                  // Сохраняем все регистры
-
-        "call keyboard_handler_c \n\t" // Твой рабочий драйвер печатает букву
-
-        // Железно заносим 0x20 перед отправкой в порты PIC!
-        "movb $0x20, %al \n\t"
-        "outb %al, $0x20 \n\t"         // Сбрасываем Мастер-PIC
-        "outb %al, $0xA0 \n\t"         // Сбрасываем Слейв-PIC
-
-        "popa \n\t"                   // Восстанавливаем регистры
-        "iret"                        // Возвращаемся в шелл крутить бесконечный ввод
-    );
-}
+uint8_t user_stack[4096];
+uint8_t kernel_stack[4096];
 
 struct tss_entry_struct {
     uint32_t prev_tss; uint32_t esp0; uint32_t ss0; uint32_t esp1;
@@ -75,13 +52,13 @@ void jump_to_user(void* shell_ptr, uint32_t user_esp) {
         "mov %%ax, %%fs \n\t"
         "mov %%ax, %%gs \n\t"
 
-        "pushl $0x23 \n\t"      // SS
-        "pushl %%edx \n\t"      // ESP
+        "pushl $0x23 \n\t"
+        "pushl %%edx \n\t"
 
-        "pushl $0x3202 \n\t"    // EFLAGS: IOPL=3 (биты 12-13 равны 11), IF=1, Резерв=1
+        "pushl $0x3202 \n\t"
 
-        "pushl $0x1B \n\t"      // CS
-        "pushl %%ebx \n\t"      // EIP
+        "pushl $0x1B \n\t"
+        "pushl %%ebx \n\t"
         "iret"
 
         :
@@ -92,19 +69,11 @@ void jump_to_user(void* shell_ptr, uint32_t user_esp) {
 
 void kernel_main(void) {
     gdt_install();
-
-    // 1. Устанавливаем чистую IDT со всеми дефолтными заглушками
     idt_install();
 
-    // 2. Красиво и динамически регистрируем клавиатуру поверх заглушки
-    extern void idt_register_handler(uint8_t vector, uint32_t handler_addr, uint8_t flags);
-    extern void keyboard_handler_asm(void);
-
-    // Вектор 0x21, адрес ассемблерной обертки, флаг 0xEE для юзермода
-    idt_register_handler(0x21, (uint32_t)keyboard_handler_asm, 0x0EE);
-
-    // 3. Инициализируем контроллер прерываний
     pic_init();
+    keyboard_init();
+    pit_init(100);
 
     write_tss(5, 0x10, (uint32_t)kernel_stack + 4096);
     asm volatile("ltr %%ax" : : "a"(0x2B));
@@ -112,11 +81,9 @@ void kernel_main(void) {
     init_serial();
     puts_com1("COM1 Successfully initialized!\n");
 
-    asm volatile("sti"); // Разрешаем прерывания процессору
-    //shell_main();
+    asm volatile("sti");
+
     jump_to_user(&shell_main, (uint32_t)user_stack + 4096);
 
     for (;;) { asm volatile("hlt"); }
 }
-
-// ПОДСКАЗКИ ДЛЯ ДРУГИХ КТО БУДЕТ КОПАТЬ ЭТОТ КОД

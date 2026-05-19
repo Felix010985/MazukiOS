@@ -67,3 +67,29 @@ char keyboard_getc(void) {
         //__asm__ volatile("hlt");
     }
 }
+
+
+extern void idt_register_handler(uint8_t vector, uint32_t handler_addr, uint8_t flags);
+
+__attribute__((naked)) void keyboard_handler_asm(void) {
+    __asm__ __volatile__ (
+        "pusha \n\t"
+
+        "mov $0x10, %ax \n\t"
+        "mov %ax, %ds \n\t"
+        "mov %ax, %es \n\t"
+
+        "call keyboard_handler_c \n\t"
+
+        "mov $0x20, %al \n\t"
+        "out %al, $0x20 \n\t"
+
+        "popa \n\t"
+        "iret"
+    );
+}
+
+void keyboard_init(void) {
+    idt_register_handler(0x21, (uint32_t)keyboard_handler_asm, 0xEE);
+}
+
