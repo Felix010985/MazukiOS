@@ -34,8 +34,12 @@ __attribute__((naked)) void syscall_handler_asm(void) {
         "push %ebx \n\t"
         "push %eax \n\t"
         "call syscall_handler_c \n\t"
-
         "add $12, %esp \n\t"
+
+        "mov $0x23, %ax \n\t"
+        "mov %ax, %ds \n\t"
+        "mov %ax, %es \n\t"
+
         "popa \n\t"
         "iret"
     );
