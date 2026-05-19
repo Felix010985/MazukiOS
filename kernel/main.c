@@ -38,11 +38,16 @@ void write_tss(int num, uint16_t ss0, uint32_t esp0) {
     uint32_t base = (uint32_t)&tss_entry;
     uint32_t limit = sizeof(tss_entry) - 1;
 
-    gdt_set_entry(num, base, limit, 0x89, 0x00);
     memset(&tss_entry, 0, sizeof(tss_entry));
+
     tss_entry.ss0 = ss0;
     tss_entry.esp0 = esp0;
+
+    tss_entry.iomap_base = sizeof(tss_entry);
+
+    gdt_set_entry(num, base, limit, 0x89, 0x00);
 }
+
 
 __attribute__((naked)) void jump_to_user(void* shell_ptr, uint32_t user_esp) {
     __asm__ __volatile__(
