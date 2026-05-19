@@ -76,12 +76,13 @@ void kernel_main(void) {
     pit_init(100);
 
     write_tss(5, 0x10, (uint32_t)kernel_stack + 4096);
-    asm volatile("ltr %%ax" : : "a"(0x2B));
+    asm volatile("ltr %%ax" : : "a"(0x28));
 
     init_serial();
     puts_com1("COM1 Successfully initialized!\n");
 
     asm volatile("sti");
+    puts_com1("BEFORE JUMP\n");
 
     jump_to_user(&shell_main, (uint32_t)user_stack + 4096);
 
