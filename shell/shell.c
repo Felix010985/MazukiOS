@@ -105,6 +105,17 @@ void shell_main(void) {
             puts_com1("!\n");
             print("Not implemented yet!\n", VGA_RED);
         }
+        else if (strcmp(input, "div") == 0) {
+            __asm__ __volatile__(
+                "movl $10, %%eax \n\t"
+                "movl $0, %%edx \n\t"
+                "movl $0, %%ecx \n\t"
+                "div %%ecx"
+                :
+                :
+                : "eax", "edx", "ecx"
+            );
+        }
         else if (strcmp(input, "reboot") == 0) {
             puts_com1("cmd: ");
             puts_com1(input);

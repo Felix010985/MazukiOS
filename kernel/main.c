@@ -80,6 +80,9 @@ void kernel_main(void) {
 
     extern void exception_gpf(void);
     idt_register_handler(13, (uint32_t)exception_gpf, 0x8E);
+    extern void exception_div_zero(void);
+    idt_register_handler(0, (uint32_t)exception_div_zero, 0x8E);
+
 
     pic_init();
     keyboard_init();

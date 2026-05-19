@@ -78,3 +78,11 @@ __attribute__((naked)) void exception_gpf(void) {
         "jmp exception_common_stub \n\t"
     );
 }
+
+__attribute__((naked)) void exception_div_zero(void) {
+    __asm__ __volatile__ (
+        "pushl $0 \n\t"
+        "pushl $0 \n\t"
+        "jmp exception_common_stub \n\t"
+    );
+}
