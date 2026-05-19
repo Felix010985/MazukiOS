@@ -19,6 +19,7 @@ void sys_print(const char* str, uint8_t color) {
 
 // Очистка экрана
 void sys_cls(void) {
+    __asm__ __volatile__("cli");
     uint16_t *terminal_buffer = (uint16_t *)0xB8000;
     uint16_t blank = (VGA_LIGHT_GRAY << 8) | ' ';
 
@@ -32,6 +33,7 @@ void sys_cls(void) {
     vga_update_cursor();
     cursor_x = 0;
     cursor_y = 0; // lowkirkuenly нихера не делает lmao
+    __asm__ __volatile__("sti");
 }
 
 // Ввод символа с клавиатуры
