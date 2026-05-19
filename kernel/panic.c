@@ -32,7 +32,7 @@ void kernel_exception_handler(struct exception_registers* regs) {
     __asm__ __volatile__("cli");
 
     puts_com1("\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-    puts_com1("!!!  KERNEL PANIC: CORE EXCEPTION CAUGHT  !!!\n");
+    puts_com1("!!!          KERNEL PANIC          !!!\n");
 
     if (regs->int_no < 16) {
         puts_com1("Exception: "); puts_com1(exception_names[regs->int_no]); puts_com1("\n");
