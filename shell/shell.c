@@ -94,6 +94,9 @@ void shell_main(void) {
             cls();
             // vga_update_cursor();
         }
+        else if (strcmp(input, "panic") == 0) {
+            __asm__ __volatile__("cli");
+        }
         else if (strcmp(input, "time") == 0) {
             puts_com1("cmd: ");
             puts_com1(input);
