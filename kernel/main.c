@@ -40,7 +40,7 @@ void write_tss(int num, uint16_t ss0, uint32_t esp0) {
     tss_entry.esp0 = esp0;
 }
 
-void jump_to_user(void* shell_ptr, uint32_t user_esp) {
+__attribute__((naked)) void jump_to_user(void* shell_ptr, uint32_t user_esp) {
     asm volatile(
         "cli \n\t"
         "mov %0, %%ebx \n\t"
