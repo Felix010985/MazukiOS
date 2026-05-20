@@ -13,6 +13,4 @@ kernel.c
 
 release.sh
 
-build/*
-!build/mazukios.iso
-!build/kernel.elf
+build/
