@@ -1,89 +1,49 @@
 # MazukiOS
 
-MazukiOS это простая операционная система написанная на C
+MazukiOS — это независимая операционная система, разрабатываемая с нуля на базе оригинального ядра **Masix**. Проект стремится к созданию чистого UNIX-подобного окружения с перспективой бинарной совместимости с Linux (на уровне системных вызовов).
 
+![logo](https://github.com/Felix010985/felix010985.github.io/blob/main/tools/masix.png)
 
-## ❓FAQ
+## 📚 Текущие возможности
+- **Masix Kernel**: Незавимое ядро написанное с нуля.
+- **Userland (world)**: TTY и базовая оболочка на C.
+- **Инфраструктура**: Это монорепозиторий как и для OS (MazukiOS) так и для ядра **Masix**, .
 
-#### Как запустить
+---
 
-Любой x86 эмулятор или гипервизор, или на реальном железе через метод загрузки Legacy или подобное
+## 🛠️ Сборка и запуск
 
-#### Что такое MazukiOS и зачем она нужна
+### Требования к окружению
+Для сборки необходим Linux (с подсистемой выполнения x86_64) и следующий тулчейн:
+- Компилятор: `x86_64-linux-gnu-gcc`
+- Линкер: `x86_64-linux-gnu-ld`
+- Утилиты: `grub-mkrescue`, `xorriso` (для создания ISO), `cpio`
+- Эмулятор: `qemu-system-x86_64`
 
-MazukiOS это простая ОС которая имеет свой API, минимальную libc и драйвера на клавиатуру/видео
+### Быстрый старт
+Вся сборка полностью автоматизирована через `Makefile`.
 
-#### Как ее собрать
+1. **Клонирование и подготовка:**
+   ```bash
+   git clone https://github.com/Felix010985/MazukiOS
+   cd MazukiOS
+   ```
 
-См. ниже
+2. **Сборка проекта и создание ISO-образа:**
+   Команда автоматически скомпилирует ядро (`sys/`), компоненты системы (`world/`), соберет правильную структуру GRUB и упакует ISO:
+   ```bash
+   make iso
+   ```
 
+3. **Запуск в QEMU:**
+   ```bash
+   make run
+   ```
 
-## 📚Основные функции
+---
 
-- libc и api для программ
-- VGA видеовывод с поддержкой цветов
-- Текстовая оболочка
-- Файловая система (пока не готова, только ramdisk :p)
-
-
-## Отзывы или идеи для следующего релиза
-
-Если у вас есть отзыв, вопрос, идея то обратитесь ко мне в комментарии под любым длинным видео. [Канал](https://www.youtube.com/@FelixProfi0r1)
-
-## 🛠️Сборка MazukiOS
-### Требования
-
-- Linux (На Windows не будет работать)
-
-- Компилятор x86_64-linux-gnu-gcc
-
-- Линкер x86_64-linux-gnu-ld
-
-- grub-mkrescue для создания ISO
-
-- qemu-system-x86_64/любой другой эмулятор для тестирования ISO
-
-## 📑Инструкция по сборке
-
-1. Создайте директорию для сборки:
-```bash
-mkdir -p build/iso/boot/grub
-```
-
-
-2. Компилируйте все исходные файлы .c из папок kernel и shell в объектные файлы:
-```bash
-SRC_FILES=$(find kernel shell -name '*.c')
-for src in $SRC_FILES; do
-    x86_64-linux-gnu-gcc -Iinclude -c "$src" -o "build/$(basename ${src%.*}).o" \
-        -ffreestanding -m32 -nostdlib -fno-pic -O0
-done
-```
-
-
-3. Линкуйте объектные файлы в ELF-бинарник:
-```bash
-x86_64-linux-gnu-ld -m elf_i386 -T linker.ld -o build/kernel.elf build/*.o -n --no-warn-rwx-segment
-```
-
-4. Создайте ISO с помощью GRUB:
-```bash
-cp build/kernel.elf build/iso/boot/
-cat > build/iso/boot/grub/grub.cfg << EOF
-set timeout=5
-set default=0
-
-menuentry "MazukiOS (LiveCD)" {
-    multiboot2 /boot/kernel.elf
-    boot
-}
-EOF
-
-grub-mkrescue -o build/mazukios.iso build/iso
-```
-
-
-Запустите ISO в QEMU:
-```bash
-qemu-system-x86_64 -cdrom build/mazukios.iso -m 256M -no-reboot -no-shutdown
-```
+## 📑 Структура репозитория
+- `sys/` — Исходный код ядра Masix (управление памятью, прерывания, сисколлы, драйверы).
+- `world/` — Собственный юзерленд MazukiOS (командная оболочка `sbsh` и системные утилиты).
+- `include/` — Общие заголовочные файлы системы.
+- `linker.ld` — Скрипт линкера для сборки ядра под архитектуру x86 (Multiboot2).
