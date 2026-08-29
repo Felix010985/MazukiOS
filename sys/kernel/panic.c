@@ -4,11 +4,11 @@
 
 // extern void puts_com1(const char* s);
 
-struct exception_registers {
-    uint32_t edi, esi, ebp, esp, ebx, edx, ecx, eax;
-    uint32_t int_no, error_code;
-    uint32_t eip, cs, eflags;
-};
+// struct exception_registers {
+//     uint32_t edi, esi, ebp, esp, ebx, edx, ecx, eax;
+//     uint32_t int_no, error_code;
+//     uint32_t eip, cs, eflags;
+// };
 
 static const char* exception_names[] = {
     "Division By Zero", "Debug", "Non Maskable Interrupt", "Breakpoint",
@@ -86,3 +86,9 @@ __attribute__((naked)) void exception_div_zero(void) {
         "jmp exception_common_stub \n\t"
     );
 }
+
+// void __stack_chk_fail(void) {
+//     while(1) {
+//         __asm__ __volatile__("cli; hlt");
+//     }
+// }

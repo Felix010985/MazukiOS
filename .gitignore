@@ -6,6 +6,7 @@ clion/*
 cmake-build-debug/*
 .idea/*
 include/libc.h
+compile_and_run.sh
 
 CMakeLists.txt
 

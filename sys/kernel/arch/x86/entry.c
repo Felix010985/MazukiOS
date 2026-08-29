@@ -18,8 +18,8 @@ void _start(void) {
     // __asm__ __volatile__("sti");
 
     kernel_main();
-
     for (;;) {
+        // Never reaching this line //
         __asm__ __volatile__("hlt");
     }
 }

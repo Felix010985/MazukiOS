@@ -3,7 +3,7 @@
 static uint16_t cursor_x = 0;
 static uint16_t cursor_y = 0;
 #define VGA_WIDTH 80
-#define VGA_HEIGHT 25
+#define VGA_HEIGHT 50
 
 
 volatile uint16_t* vga_buffer = (volatile uint16_t*)0xB8000;

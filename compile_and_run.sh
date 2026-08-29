@@ -19,7 +19,7 @@ OBJ_FILES=()
 for src in "${SRC_FILES[@]}"; do
     obj="$BUILD/$(basename ${src%.*}).o"
     x86_64-linux-gnu-gcc -Iinclude -c "$src" -o "$obj" \
-        -ffreestanding -m32 -nostdlib -fno-pic -O0
+        -ffreestanding -m32 -nostdlib -fno-pic -O0 -fno-stack-protector -fno-stack-check
     OBJ_FILES+=("$obj")
 done
 
@@ -57,4 +57,4 @@ qemu-system-x86_64 \
     -m 256M \
     -serial stdio \
     -no-reboot \
-    -no-shutdown \
+    -no-shutdown
