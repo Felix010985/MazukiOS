@@ -8,11 +8,16 @@
 #include <stddef.h>
 #include <string.h>
 
+uint32_t shell_elf_start = 0;
+uint32_t shell_elf_size = 0;
+
+extern void printf(const char* fmt, ...);
+extern void tty_write_char(char c);
+
 void gdt_set_entry(int num, uint32_t base, uint32_t limit, uint8_t access, uint8_t gran);
 extern void pic_init(void);
 extern void keyboard_init(void);
 
-extern void shell_main(void);
 extern void init_serial(void);
 extern void puts_com1(const char* s);
 
@@ -21,6 +26,19 @@ extern void idt_register_handler(uint8_t vector, uint32_t handler_addr, uint8_t 
 
 uint8_t user_stack[4096];
 uint8_t kernel_stack[4096];
+
+struct multiboot_tag {
+    uint32_t type;
+    uint32_t size;
+};
+
+struct multiboot_tag_module {
+    uint32_t type;
+    uint32_t size;
+    uint32_t mod_start;
+    uint32_t mod_end;
+    char string;
+};
 
 struct tss_entry_struct {
     uint32_t prev_tss; uint32_t esp0; uint32_t ss0; uint32_t esp1;
@@ -48,7 +66,6 @@ void write_tss(int num, uint16_t ss0, uint32_t esp0) {
     gdt_set_entry(num, base, limit, 0x89, 0x00);
 }
 
-
 __attribute__((naked)) void jump_to_user(void* shell_ptr, uint32_t user_esp) {
     __asm__ __volatile__(
         "cli \n\t"
@@ -73,20 +90,32 @@ __attribute__((naked)) void jump_to_user(void* shell_ptr, uint32_t user_esp) {
     );
 }
 
-
-void kernel_main(void) {
+void kernel_main(uint32_t magic, uint32_t addr) {
     gdt_install();
     idt_install();
+
+    uint32_t cr0;
+    uint32_t cr4;
+
+
+    asm volatile("mov %%cr0, %0" : "=r"(cr0));
+    cr0 &= ~(1 << 2); // Сбросить EM (Bit 2)
+    cr0 |= (1 << 1);  // Установить MP (Bit 1)
+    asm volatile("mov %0, %%cr0" : : "r"(cr0));
+
+    asm volatile("mov %%cr4, %0" : "=r"(cr4));
+    cr4 |= (1 << 9);
+    cr4 |= (1 << 10);
+    asm volatile("mov %0, %%cr4" : : "r"(cr4));
 
     extern void exception_gpf(void);
     idt_register_handler(13, (uint32_t)exception_gpf, 0x8E);
     extern void exception_div_zero(void);
     idt_register_handler(0, (uint32_t)exception_div_zero, 0x8E);
 
-
     pic_init();
     keyboard_init();
-    pit_init(100);
+    // pit_init(100);
 
     extern void syscall_init(void);
     syscall_init();
@@ -97,10 +126,57 @@ void kernel_main(void) {
     init_serial();
     puts_com1("COM1 Successfully initialized!\n");
 
-    asm volatile("sti");
+    // asm volatile("sti");
     puts_com1("BEFORE JUMP\n");
 
-    jump_to_user(&shell_main, (uint32_t)user_stack + 4096);
+    if (magic == 0x36d76289 && addr != 0) {
+        uint8_t* tag_ptr = (uint8_t*)(addr + 8);
+
+        while (1) {
+            struct multiboot_tag* tag = (struct multiboot_tag*)tag_ptr;
+
+            if (tag->type == 0) break;
+
+            if (tag->type == 3) {
+                struct multiboot_tag_module* mod = (struct multiboot_tag_module*)tag;
+                shell_elf_start = mod->mod_start;
+                shell_elf_size = mod->mod_end - mod->mod_start;
+                break;
+            }
+
+            tag_ptr += ((tag->size + 7) & ~7);
+        }
+    }
+
+    extern void task_init(void);
+    task_init();
+    puts_com1("Masix: Task manager initialized.\n");
+
+    if (shell_elf_start != 0 && shell_elf_size != 0) {
+        extern void* elf_load_binary(uint32_t file_start);
+        void* entry_point = elf_load_binary(shell_elf_start);
+
+        if (entry_point != NULL) {
+            puts_com1("Masix: Creating userland task for shell.elf...\n");
+
+            extern void task_create(void* entry_point);
+            task_create(entry_point);
+
+        } else {
+            puts_com1("CRITICAL: ELF binary loading failed! Halted.\n");
+            for (;;) { asm volatile("hlt"); }
+        }
+    } else {
+        puts_com1("CRITICAL: shell.elf module not found in multiboot tags! Halted.\n");
+        for (;;) { asm volatile("hlt"); }
+    }
+
+    pit_init(100);
+    puts_com1("Masix: PIT Timer registered at 100Hz.\n");
+
+    puts_com1("Masix: Multitasking started! Jumping to Ring 3...\n");
+
+    asm volatile("sti");
 
     for (;;) { asm volatile("hlt"); }
 }

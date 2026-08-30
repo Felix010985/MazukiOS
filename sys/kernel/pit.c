@@ -1,10 +1,12 @@
 #include "kernel/pit.h"
 #include "kernel/io.h"
+#include "kernel/task.h"
 #include <stdint.h>
 
 static volatile uint32_t system_ticks = 0;
 
 extern void idt_register_handler(uint8_t vector, uint32_t handler_addr, uint8_t flags);
+extern void write_tss(int num, uint16_t ss0, uint32_t esp0);
 
 void pit_handler_c(void) {
     system_ticks++;
@@ -13,17 +15,36 @@ void pit_handler_c(void) {
 __attribute__((naked)) void pit_handler_asm(void) {
     __asm__ __volatile__ (
         "pusha \n\t"
+
         "mov $0x10, %ax \n\t"
         "mov %ax, %ds \n\t"
         "mov %ax, %es \n\t"
 
         "call pit_handler_c \n\t"
 
-        "mov $0x20, %al \n\t"
-        "outb %al, $0x20 \n\t"
+        "movl current_task, %eax \n\t"
+        "movl %esp, 4(%eax) \n\t"
 
-        "popa \n\t"
-        "iret"
+        "call schedule \n\t"
+
+        "movl current_task, %eax \n\t"
+        "movl 4(%eax), %esp \n\t"
+
+        "movl 12(%eax), %ebx \n\t"
+        "addl $4096, %ebx \n\t"
+
+        "pushl %ebx \n\t"
+    "pushl $0x10 \n\t"
+    "pushl $5 \n\t"
+    "call write_tss \n\t"
+    "addl $12, %esp \n\t"
+
+    "mov $0x20, %al \n\t"
+    "outb %al, $0x20 \n\t"
+
+    "popa \n\t"
+
+    "iret \n\t"
     );
 }
 
@@ -45,5 +66,6 @@ uint32_t pit_get_ticks(void) {
 void sleep(uint32_t ticks) {
     uint32_t target_ticks = system_ticks + ticks;
     while (system_ticks < target_ticks) {
+        asm volatile("hlt");
     }
 }

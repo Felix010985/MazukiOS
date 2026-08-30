@@ -1,9 +1,16 @@
 // Kernel LibK
-// #include "libc.h"
-// #include "kernel/api.h"
-#include "kernel/wrap.h"
 #include "kernel/vga.h"
 #include <stdarg.h>
+#include <stdint.h>
+
+extern void tty_write_char(char c);
+extern char keyboard_getc(void);
+
+#ifndef NULL
+#define NULL ((void*)0)
+#endif
+
+#define MAX_INPUT 128
 
 void* memcpy(void* dst, const void* src, unsigned int n) {
     unsigned char* d = dst;
@@ -39,7 +46,6 @@ int strcmp(const char* a, const char* b) {
     return (unsigned char)(*a) - (unsigned char)(*b);
 }
 
-// int -> string (base 10 или 16)
 void itoa(int value, char* str, int base) {
     char buf[33];
     int i = 0, is_negative = 0;
@@ -64,8 +70,9 @@ int atoi(const char* str) {
 }
 
 void print_str(const char* s) {
-    int i=0;
-    while(s[i]) { print(&s[i], VGA_LIGHT_GRAY); i++; }
+    while(*s) {
+        tty_write_char(*s++);
+    }
 }
 
 void print_num(int n) {
@@ -74,21 +81,40 @@ void print_num(int n) {
     print_str(buf);
 }
 
-static int current_color = VGA_LIGHT_GRAY;
+static int current_color = 0x0F;
 
 void set_color(int color) {
     current_color = color;
 }
 
 void reset_color() {
-    current_color = VGA_LIGHT_GRAY;
+    current_color = 0x0F;
 }
 
 static void putc_color(char c) {
-    char tmp[2];
-    tmp[0] = c;
-    tmp[1] = 0;
-    print(tmp, current_color);
+    (void)current_color;
+    tty_write_char(c);
+}
+
+static void internal_kernel_read_line(char* buf, int max_len) {
+    int read_bytes = 0;
+    while (read_bytes < max_len - 1) {
+        char c = keyboard_getc();
+        if (c == '\n' || c == '\r') {
+            buf[read_bytes++] = '\n';
+            tty_write_char('\n');
+            break;
+        } else if (c == '\b') {
+            if (read_bytes > 0) {
+                read_bytes--;
+                tty_write_char('\b');
+            }
+        } else {
+            buf[read_bytes++] = c;
+            tty_write_char(c);
+        }
+    }
+    buf[read_bytes] = '\0';
 }
 
 void printf(const char* fmt, ...) {
@@ -130,7 +156,7 @@ void printf(const char* fmt, ...) {
 
 int scanf(const char *fmt, ...) {
     char buffer[MAX_INPUT];
-    read_line(buffer, current_color);
+    internal_kernel_read_line(buffer, MAX_INPUT);
 
     const char *p = buffer;
     va_list args;
@@ -171,18 +197,18 @@ int scanf(const char *fmt, ...) {
                 unsigned int val = 0;
                 int found = 0;
                 while ((*p >= '0' && *p <= '9') ||
-                       (*p >= 'a' && *p <= 'f') ||
-                       (*p >= 'A' && *p <= 'F')) {
+                    (*p >= 'a' && *p <= 'f') ||
+                    (*p >= 'A' && *p <= 'F')) {
                     char c = *p;
-                    int digit;
-                    if (c >= '0' && c <= '9') digit = c - '0';
-                    else if (c >= 'a' && c <= 'f') digit = c - 'a' + 10;
-                    else digit = c - 'A' + 10;
-                    val = val * 16 + digit;
+                int digit;
+                if (c >= '0' && c <= '9') digit = c - '0';
+                else if (c >= 'a' && c <= 'f') digit = c - 'a' + 10;
+                else digit = c - 'A' + 10;
+                val = val * 16 + digit;
                     p++;
                     found = 1;
-                }
-                if (found) { *out = val; assigned++; }
+                    }
+                    if (found) { *out = val; assigned++; }
             } else if (fmt[i] == 's') {
                 char *out = va_arg(args, char *);
                 while (*p && (*p == ' ' || *p == '\t')) p++;
@@ -205,9 +231,10 @@ int scanf(const char *fmt, ...) {
 }
 
 char *fgets(char *buf, int size, void *unused_stream) {
+    (void)unused_stream;
     if (!buf || size <= 0) return NULL;
 
-    read_line(buf, current_color);
+    internal_kernel_read_line(buf, size);
 
     for (int i = 0; i < size; i++) {
         if (buf[i] == '\n' || buf[i] == '\r') {

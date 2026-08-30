@@ -1,6 +1,6 @@
 #include "kernel/gdt.h"
 
-struct gdt_entry gdt[6];
+struct gdt_entry gdt[8];
 struct gdt_ptr gp;
 
 void gdt_set_entry(int num, uint32_t base, uint32_t limit, uint8_t access, uint8_t gran) {
@@ -14,16 +14,16 @@ void gdt_set_entry(int num, uint32_t base, uint32_t limit, uint8_t access, uint8
 }
 
 void gdt_install(void) {
-    gp.limit = (sizeof(struct gdt_entry) * 6) - 1;
+    gp.limit = (sizeof(struct gdt_entry) * 8) - 1;
     gp.base  = (uint32_t)&gdt;
 
-    gdt_set_entry(0, 0, 0, 0, 0);           // NULL
-    gdt_set_entry(1, 0, 0xFFFFFFFF, 0x9A, 0xCF); // Kernel code
-    gdt_set_entry(2, 0, 0xFFFFFFFF, 0x92, 0xCF); // Kernel data
-    gdt_set_entry(3, 0, 0xFFFFFFFF, 0xFA, 0xCF); // User code (ring3)
-    gdt_set_entry(4, 0, 0xFFFFFFFF, 0xF2, 0xCF); // User data (ring3)
+    gdt_set_entry(0, 0, 0, 0, 0);                 // 0: NULL
+    gdt_set_entry(1, 0, 0xFFFFFFFF, 0x9A, 0xCF);  // 1: Kernel code
+    gdt_set_entry(2, 0, 0xFFFFFFFF, 0x92, 0xCF);  // 2: Kernel data
+    gdt_set_entry(3, 0, 0xFFFFFFFF, 0xFA, 0xCF);  // 3: User code (ring3)
+    gdt_set_entry(4, 0, 0xFFFFFFFF, 0xF2, 0xCF);  // 4: User data (ring3)
 
-        asm volatile (
+    asm volatile (
         "lgdt %0\n\t"
         "ljmp $0x08, $1f\n\t"
         "1:\n\t"

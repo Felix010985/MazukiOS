@@ -1,109 +1,112 @@
-// shell для проверки взаимодействия с ядром можно игнорировать
-#include "shell.h"
-// #include "kernel/api.h"
-#include "kernel/wrap.h"
-#include "kernel/power.h"
-#include "kernel/vga.h"
-#include "kernel/serial.h"
-#include <stdbool.h>
-#include "kernel/filesystem.h"
+// shell для проверки взаимодействия с ядром - теперь полностью рабочий!
+// #include "shell.h"
 #include <stdio.h>
-#include <mazukios.h>
-// #include <libc.h>
-// #include <string.h>
+#include <string.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+#define MAX_INPUT 128
+
+#define ANSI_GREEN   "\033[1;32m"
+#define ANSI_RED     "\033[1;31m"
+#define ANSI_MAGENTA "\033[1;35m"
+#define ANSI_RESET   "\033[0m"
 
 bool is_blank(const char* str) {
     int i = 0;
     while (str[i]) {
-        if (str[i] != ' ' && str[i] != '\t')
+        if (str[i] != ' ' && str[i] != '\t' && str[i] != '\n' && str[i] != '\r')
             return false;
         i++;
     }
     return true;
 }
 
-void shell_main(void) {
-    // puts_com1("Shell loaded!\n");
-    char input[128];
-    char user[8];
+void trim_newline(char* str) {
+    int len = strlen(str);
+    if (len > 0 && str[len - 1] == '\n') {
+        str[len - 1] = '\0';
+    }
+}
+
+void main(void) {
+    setvbuf(stdout, NULL, _IONBF, 0);
+    setvbuf(stderr, NULL, _IONBF, 0);
+    char input[MAX_INPUT];
+    char user[32];
+
     while (1) {
         printf("Enter your username for the session: ");
-        //*НЕУДАЧНЫЕ ПОПЫТКИ*\\
-        // read_line(user, VGA_LIGHT_GRAY);
-        // scanf("%s", user);
-        fgets(user, MAX_INPUT, NULL);
+
+
+        if (fgets(user, sizeof(user), stdin) == NULL) {
+            continue;
+        }
+
+        trim_newline(user);
+
         if (is_blank(user)) {
             printf("username is empty!\n");
-            continue; // продолжить исполнение цикла
-        }
-        else {
-            break; // выход из цикла с вводом в основной цикл shell
+            continue;
+        } else {
+            break;
         }
     }
-    cls(); // очистка экрана, пока что сдвигает странно... upd 26.02.26: уже сдвигает вроде нормально но все еще баговано хахахах
+
+
+    printf("\033[2J\033[H");
+
     const char art[] =
     ",--.   ,--.                       ,--.    ,--. ,-----.  ,---.\n"
     "|   `.'   | ,--,--.,-----.,--.,--.|  |,-. `--''  .-.  ''   .-'\n"
     "|  |'.'|  |' ,-.  |`-.  / |  ||  ||     / ,--.|  | |  |`.  `-.\n"
     "|  |   |  |\\ '-'  | /  `-.'  ''  '|  \\  \\ |  |'  '-'  '.-'    |\n"
     "`--'   `--' `--`--'`-----' `----' `--'`--'`--' `-----' `-----'\n\n";
-    print(art, VGA_LIGHT_GREEN);
+
+    printf("%s%s%s", ANSI_GREEN, art, ANSI_RESET);
+
     while (1) {
-        // print("user$", VGA_LIGHT_GREEN);
-        print(user, VGA_LIGHT_GREEN);
-        print("$", VGA_LIGHT_GREEN);
-		print("root@", VGA_RED);
-		print("LiveCD: ", VGA_MAGENTA);
-        read_line(input, VGA_LIGHT_GRAY);
-		if (is_blank(input)) {
-        continue;
-    	}
+        printf("%s%s$%s", ANSI_GREEN, user, ANSI_RESET);
+        printf("%sroot@%s", ANSI_RED, ANSI_RESET);
+        printf("%sLiveCD: %s", ANSI_MAGENTA, ANSI_RESET);
+
+        if (fgets(input, sizeof(input), stdin) == NULL) {
+            continue;
+        }
+
+        trim_newline(input);
+
+        if (is_blank(input)) {
+            continue;
+        }
+
         if (strcmp(input, "help") == 0) {
-            puts_com1("cmd: help!\n");
-            set_color(VGA_LIGHT_GREEN);
             printf(
                 "Available commands:\n"
                 "help       - show help\n"
                 "c          - clear the screen\n"
-                "shutdown   - shutdown the system (poorly implemented)\n"
+                "shutdown   - shutdown the system (stub)\n"
                 "ver        - show OS version\n"
                 "time       - show current system time\n"
-                "Await russian translation soon\n"
+                "pushup     - do some exercise\n"
+                "panic      - trigger kernel halt\n"
             );
-            reset_color();
-        }
- //       else if (strcmp(input, "clear") == 0) {
- //           print("Not implemented yet!\n", VGA_RED);
- //       }
-        else if (strcmp(input, "shutdown") == 0) {
-            puts_com1("cmd: ");
-            puts_com1(input);
-            puts_com1("!\n");
-            system_shutdown();
-        }
-        else if (strcmp(input, "ver") == 0) {
-            puts_com1("cmd: ");
-            puts_com1(input);
-            puts_com1("!\n");
-            print("MazukiOS 0.1.0\n", VGA_RED);
         }
         else if (strcmp(input, "c") == 0) {
-            puts_com1("cmd: ");
-            puts_com1(input);
-            puts_com1("!\n");
-            cursor_x = 0;
-            cursor_y = 0;
-            cls();
-            // vga_update_cursor();
+            printf("\033[2J\033[H");
+        }
+        else if (strcmp(input, "shutdown") == 0) {
+            printf("Shutdown call sent to kernel...\n");
+        }
+        else if (strcmp(input, "ver") == 0) {
+            printf("MazukiOS 0.2.5\n");
         }
         else if (strcmp(input, "panic") == 0) {
             __asm__ __volatile__("cli");
         }
         else if (strcmp(input, "time") == 0) {
-            puts_com1("cmd: ");
-            puts_com1(input);
-            puts_com1("!\n");
-            print("Not implemented yet!\n", VGA_RED);
+            printf("System time feature is not implemented yet!\n");
         }
         else if (strcmp(input, "div") == 0) {
             __asm__ __volatile__(
@@ -116,52 +119,41 @@ void shell_main(void) {
                 : "eax", "edx", "ecx"
             );
         }
-        else if (strcmp(input, "reboot") == 0) {
-            puts_com1("cmd: ");
-            puts_com1(input);
-            puts_com1("!\n");
-            // второй shutdown и заглушка для reboot
-            shutdown_by_panic();
+        else if (strcmp(input, "mazenvfetch") == 0) {
+            printf("     _______    user@host\n");
+            printf("  _ \______ \   os:       MazukiOS\n");
+            printf(" | \  ___  \ |  pkg:      none [0]\n");
+            printf(" | | /   \ | |  ram:      NaN / NaN MiB\n");
+            printf(" | | \___/ | |  cpu:      Sugomachip\n");
+            printf(" | \______ \_|  init:     sbsh\n");
+            printf("  \_______\     shell:    sbsh\n");
+            printf("                de/wm:    tty\n");
+            printf("                envfetch: 3.4.7-mazukios-test\n"); // для скриншотиков пока нормального envfetch'а нету
         }
-        else if (strcmp(input, "write") == 0) {
-            puts_com1("cmd: ");
-            puts_com1(input);
-            puts_com1("!\n");
-            int f = fs_create("test.txt");
+        else if (strcmp(input, "fork") == 0) {
+            printf("Masix Userland: Executing fork() system call...\n");
 
-            unsigned char data[] = "Hello, MazukiOS!";
-            unsigned int data_size = sizeof(data);
+            int pid = fork();
 
-            fs_write(f, data, data_size);
+            if (pid < 0) {
+                printf("Error: fork() failed!\n");
+            }
+            else if (pid == 0) {
+                printf("\n[CHILD] Hello from the cloned process! PID: %d\n", getpid());
+                printf("[CHILD] I'm running on a completely separate stack.\n");
+                printf("[CHILD] Exiting now...\n");
 
-            unsigned char buffer[32];
-            fs_read(f, buffer, data_size);
 
-            print(file_table[f].name, VGA_LIGHT_GRAY);
-            print("\n", VGA_LIGHT_GRAY);
-        }
-        else if (strcmp(input, "pushup") == 0) {
-            puts_com1("cmd: ");
-            puts_com1(input);
-            puts_com1("!\n");
-            printf("D o  p u s h u p s\nNOW!\n");
-            printf("Did you do it? ");
-            read_line(input, VGA_LIGHT_GRAY);
-            if (strcmp(input, "i did") == 0) {
-                printf("Good boy\n");
-                continue;
+                exit(0);
             }
             else {
-                printf("I didnt hear you but i count that as done\n");
+                printf("[PARENT] Successfully spawned child task!\n");
+                printf("[PARENT] Child PID assigned by Masix kernel: %d\n", pid);
+                printf("[PARENT] Main shell continues working smoothly...\n");
             }
         }
-		else {
-            puts_com1("cmd: ");
-            puts_com1(input);
-            puts_com1("\n");
-			print("Unrecognized command: ", VGA_LIGHT_RED);
-            print(input, VGA_LIGHT_RED);
-            print("\n", VGA_LIGHT_GRAY);
-		}
+        else {
+            printf("Unrecognized command: %s\n", input);
+        }
     }
 }
