@@ -12,7 +12,7 @@ extern void vga_clear(uint8_t color);
 extern void vga_update_cursor(void);
 extern void vga_scroll(uint8_t color);
 
-static uint8_t tty_color = 0x0F; // Текущий цвет терминала
+static uint8_t tty_color = 0x0F;
 static int ansi_state = 0;
 static int ansi_arg1 = 0;
 static int ansi_arg2 = 0;
@@ -20,7 +20,6 @@ static int* ansi_curr_arg = &ansi_arg1;
 
 static const uint8_t ansi_to_vga_table[] = {0, 4, 2, 6, 1, 5, 3, 7, 8, 12, 10, 14, 9, 13, 11, 15};
 
-// Честный деструктивный бэкспейс для TTY
 void tty_backspace(void) {
     if (cursor_x > 0) {
         cursor_x--;
@@ -32,7 +31,6 @@ void tty_backspace(void) {
     vga_update_cursor();
 }
 
-// Парсер ANSI последовательностей
 static int parse_ansi(char c) {
     if (ansi_state == 0) {
         if (c == '\033') {
@@ -82,7 +80,6 @@ static int parse_ansi(char c) {
     return 0;
 }
 
-// Главная POSIX функция TTY — принимает символ из сисколла write()
 void tty_write_char(char c) {
     if (parse_ansi(c)) return;
 

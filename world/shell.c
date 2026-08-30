@@ -120,15 +120,15 @@ void main(void) {
             );
         }
         else if (strcmp(input, "mazenvfetch") == 0) {
-            printf("     _______    user@host\n");
-            printf("  _ \______ \   os:       MazukiOS\n");
-            printf(" | \  ___  \ |  pkg:      none [0]\n");
-            printf(" | | /   \ | |  ram:      NaN / NaN MiB\n");
-            printf(" | | \___/ | |  cpu:      Sugomachip\n");
-            printf(" | \______ \_|  init:     sbsh\n");
-            printf("  \_______\     shell:    sbsh\n");
-            printf("                de/wm:    tty\n");
-            printf("                envfetch: 3.4.7-mazukios-test\n"); // для скриншотиков пока нормального envfetch'а нету
+            printf("\033[1;32m     _______    \033[0muser@host\n");
+            printf("\033[1;32m   _ \\______ \\   \033[0mos:       MazukiOS\n");
+            printf("\033[1;32m | \\  ___  \\ |  \033[0mpkg:      none [0]\n");
+            printf("\033[1;32m | | /   \\ | |  \033[0mram:      NaN / NaN MiB\n");
+            printf("\033[1;32m | | \\___/ | |  \033[0mcpu:      Sugomachip\n");
+            printf("\033[1;32m | \\______ \\_|  \033[0minit:     sbsh\n");
+            printf("\033[1;32m  \\_______\\     \033[0mshell:    sbsh\n");
+            printf("                \033[0mde/wm:    tty\n");
+            printf("                \033[0menvfetch: 3.4.7-mazukios-test\033[0m\n"); // для скриншотиков пока нормального envfetch'а нету
         }
         else if (strcmp(input, "fork") == 0) {
             printf("Masix Userland: Executing fork() system call...\n");

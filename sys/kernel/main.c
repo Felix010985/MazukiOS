@@ -1,5 +1,6 @@
 #include "kernel/gdt.h"
 #include "kernel/io.h"
+#include "kernel/filesystem.h"
 #include "kernel/idt.h"
 #include "kernel/pit.h"
 #include "kernel/panic.h"
@@ -23,6 +24,88 @@ extern void puts_com1(const char* s);
 
 extern void exception_gpf(void);
 extern void idt_register_handler(uint8_t vector, uint32_t handler_addr, uint8_t flags);
+
+struct cpio_newc_header {
+    char c_magic[6];
+    char c_ino[8];
+    char c_mode[8];
+    char c_uid[8];       // UID
+    char c_gid[8];       // GID
+    char c_nlink[8];
+    char c_mtime[8];
+    char c_filesize[8];
+    char c_devmajor[8];
+    char c_devminor[8];
+    char c_rdevmajor[8];
+    char c_rdevminor[8];
+    char c_namesize[8];
+    char c_check[8];
+} __attribute__((packed));
+
+static uint32_t parse_hex_ascii(const char* str, size_t len) {
+    uint32_t result = 0;
+    for (size_t i = 0; i < len; i++) {
+        char c = str[i];
+        uint32_t val = 0;
+        if (c >= '0' && c <= '9') val = c - '0';
+        else if (c >= 'a' && c <= 'f') val = c - 'a' + 10;
+        else if (c >= 'A' && c <= 'F') val = c - 'A' + 10;
+        else break;
+        result = (result << 4) | val;
+    }
+    return result;
+}
+
+void unpack_initramfs(uint32_t archive_start, uint32_t archive_size) {
+    uint8_t* ptr = (uint8_t*)archive_start;
+    uint8_t* end = ptr + archive_size;
+
+    while (ptr < end) {
+        struct cpio_newc_header* header = (struct cpio_newc_header*)ptr;
+        if (memcmp(header->c_magic, "070701", 6) != 0) break;
+
+        uint32_t namesize = parse_hex_ascii(header->c_namesize, 8);
+        uint32_t filesize = parse_hex_ascii(header->c_filesize, 8);
+        char* filename = (char*)(ptr + sizeof(struct cpio_newc_header));
+        puts_com1("Masix: initramfs found file: ");
+        puts_com1(filename);
+        puts_com1("\n");
+
+        if (strcmp(filename, "TRAILER!!!") == 0) break;
+
+        uint32_t data_offset = (sizeof(struct cpio_newc_header) + namesize + 3) & ~3;
+        uint8_t* file_data = ptr + data_offset;
+
+        if (filesize > 0 && strcmp(filename, ".") != 0 && strcmp(filename, "..") != 0) {
+
+            char clean_path[64];
+            if (memcmp(filename, "./", 2) == 0) {
+                strcpy(clean_path, filename + 2);
+            } else {
+                strcpy(clean_path, filename);
+            }
+
+            int idx = fs_create(clean_path);
+            if (idx != -1) {
+                fs_write(idx, file_data, filesize);
+
+                puts_com1("Masix: Registered cpio file in VFS: ");
+                puts_com1(clean_path);
+                puts_com1("\n");
+            }
+        }
+
+        if (strcmp(filename, "./bin/init") == 0 || strcmp(filename, "bin/init") == 0) {
+            shell_elf_start = (uint32_t)file_data;
+            shell_elf_size = filesize;
+        }
+
+        ptr += data_offset + ((filesize + 3) & ~3);
+    }
+}
+
+uint32_t initramfs_start = 0;
+uint32_t initramfs_size = 0;
 
 uint8_t user_stack[4096];
 uint8_t kernel_stack[4096];
@@ -139,8 +222,12 @@ void kernel_main(uint32_t magic, uint32_t addr) {
 
             if (tag->type == 3) {
                 struct multiboot_tag_module* mod = (struct multiboot_tag_module*)tag;
-                shell_elf_start = mod->mod_start;
-                shell_elf_size = mod->mod_end - mod->mod_start;
+                initramfs_start = mod->mod_start;
+                initramfs_size = mod->mod_end - mod->mod_start;
+
+                puts_com1("Masix: initramfs module located in memory.\n");
+
+                unpack_initramfs(initramfs_start, initramfs_size);
                 break;
             }
 

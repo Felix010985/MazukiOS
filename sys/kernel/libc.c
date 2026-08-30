@@ -2,6 +2,7 @@
 #include "kernel/vga.h"
 #include <stdarg.h>
 #include <stdint.h>
+#include <stddef.h>
 
 extern void tty_write_char(char c);
 extern char keyboard_getc(void);
@@ -23,6 +24,19 @@ void* memset(void* dst, int value, unsigned int n) {
     unsigned char* d = dst;
     for (unsigned int i = 0; i < n; i++) d[i] = (unsigned char)value;
     return dst;
+}
+
+int memcmp(const void *s1, const void *s2, size_t n) {
+    const unsigned char *p1 = (const unsigned char *)s1;
+    const unsigned char *p2 = (const unsigned char *)s2;
+
+    for (size_t i = 0; i < n; i++) {
+        if (p1[i] != p2[i]) {
+            return p1[i] - p2[i];
+        }
+    }
+
+    return 0;
 }
 
 unsigned int strlen(const char* s) {

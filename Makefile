@@ -12,6 +12,9 @@ ISO_DIR   := $(BUILD_DIR)/iso
 BOOT_DIR  := $(ISO_DIR)/boot
 GRUB_DIR  := $(BOOT_DIR)/grub
 
+ROOTFS_SRC_DIR := world/rootfs_source
+INITRAMFS_IMG  := $(BUILD_DIR)/initramfs.cpio
+
 MUSL_DIR  := world/musl
 MUSL_INC  := -I$(MUSL_DIR)/include
 
@@ -29,8 +32,9 @@ USER_OBJS  := $(USER_SRCS:world/%.c=$(BUILD_DIR)/world/%.o)
 ALL_OBJS   := $(SYS_OBJS) $(USER_OBJS)
 DEP_FILES  := $(ALL_OBJS:%.o=%.d)
 
+# Добавляем зависимость all от архива initramfs
 .PHONY: all
-all: $(BUILD_DIR)/kernel.elf $(BUILD_DIR)/world/shell.elf
+all: $(BUILD_DIR)/kernel.elf $(BUILD_DIR)/world/shell.elf $(INITRAMFS_IMG)
 	@echo "==== Компиляция и линковка ядра и юзерленда успешно завершена! ===="
 
 .PHONY: iso
@@ -42,11 +46,11 @@ run: iso
 	@echo "==== Запуск MazukiOS в QEMU ===="
 	$(QEMU) -cdrom $(BUILD_DIR)/mazukios.iso -m 256M -serial stdio -no-reboot -no-shutdown
 
-$(BUILD_DIR)/mazukios.iso: $(BUILD_DIR)/kernel.elf $(BUILD_DIR)/world/shell.elf $(GRUB_DIR)/grub.cfg
-	@echo "==== Создание ISO-образа через grub-mkrescue ===="
+$(BUILD_DIR)/mazukios.iso: $(BUILD_DIR)/kernel.elf $(INITRAMFS_IMG) $(GRUB_DIR)/grub.cfg
+	@echo "==== Создание ISO-образа с полноценной initramfs ===="
 	@mkdir -p $(BOOT_DIR)
 	cp $(BUILD_DIR)/kernel.elf $(BOOT_DIR)/
-	cp $(BUILD_DIR)/world/shell.elf $(BOOT_DIR)/
+	cp $(INITRAMFS_IMG) $(BOOT_DIR)/
 	$(GRUB) -o $@ $(ISO_DIR) 2>/dev/null
 	@echo "ISO успешно собран: $@"
 
@@ -69,9 +73,20 @@ $(BUILD_DIR)/world/shell.elf: $(USER_OBJS)
 		$(MUSL_DIR)/lib/crtn.o \
 		-lgcc
 
-
 	@echo "=== Проверка структуры юзерленда ==="
-	@echo "Размер бинарника shell.elf: $$(wc -c < $@) байт"
+	@echo "Размер бинарника shell.elf: $$(wc -c < $@) byte"
+	@x86_64-linux-gnu-readelf -S $@ | head -15
+
+	@mkdir -p $(ROOTFS_SRC_DIR)/bin
+	cp $@ $(ROOTFS_SRC_DIR)/bin/init
+
+$(INITRAMFS_IMG): $(BUILD_DIR)/world/shell.elf
+	@echo "==== Упаковка initramfs в формат CPIO ===="
+	@mkdir -p $(BUILD_DIR)
+	@mkdir -p $(ROOTFS_SRC_DIR)/etc
+	@echo "Welcome to MazukiOS!" > $(ROOTFS_SRC_DIR)/etc/motd
+	cd $(ROOTFS_SRC_DIR) && find . | cpio -o -H newc > ../../$(INITRAMFS_IMG) 2>/dev/null
+	@echo "Размер initramfs: $$(wc -c < $(INITRAMFS_IMG)) байт"
 
 $(BUILD_DIR)/sys/%.o: sys/%.c
 	@mkdir -p $(dir $@)
@@ -91,7 +106,7 @@ $(GRUB_DIR)/grub.cfg:
 	@echo '' >> $@
 	@echo 'menuentry "MazukiOS (LiveCD)" {' >> $@
 	@echo '    multiboot2 /boot/kernel.elf' >> $@
-	@echo '    module2 /boot/shell.elf rootfs' >> $@
+	@echo '    module2 /boot/initramfs.cpio initramfs' >> $@
 	@echo '    boot' >> $@
 	@echo '}' >> $@
 
