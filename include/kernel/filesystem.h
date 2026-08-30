@@ -34,3 +34,4 @@ int fs_read(int file_index, unsigned char* buffer, unsigned int size);
 
 #endif
 // честно я спросил chatgpt зачем надо первые 2 строки и он сказал для безопасности кода, оставлю так пока :)
+// это было 8 месяцев назад...

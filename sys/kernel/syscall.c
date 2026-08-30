@@ -26,9 +26,11 @@ extern void puts_com1(const char* s);
 #define LINUX_SYS_IOCTL           54
 #define LINUX_SYS_FCNTL           55
 #define LINUX_SYS_GETDENTS        78
+#define LINUX_SYS_MUNMAP          91
 
 #define LINUX_SYS_FSTAT           108
 #define LINUX_SYS_MODIFY_LDT      123
+#define LINUX_SYS__LLSEEK         140
 #define LINUX_SYS_WRITEV          146
 #define LINUX_SYS_RT_SIGACTION    174
 
@@ -286,11 +288,56 @@ uint32_t syscall_handler_c(struct syscall_regs* regs) {
             // ebx = n, ecx = inp, edx = outp, esi = exp, edi = tsp
             return 0;
 
+        case LINUX_SYS_MUNMAP:
+        {
+            // ebx = addr, ecx = length
+            return 0;
+        }
+
+        case LINUX_SYS__LLSEEK:
+        {
+            // ebx = fd
+            // ecx = offset_high
+            // edx = offset_low
+            // esi = uint64_t* result_ptr
+            // edi = whence (SEEK_SET, SEEK_CUR, SEEK_END)
+            extern vfs_node_t* fd_table[32];
+            int fd = regs->ebx;
+            uint32_t offset_high = regs->ecx;
+            uint32_t offset_low = regs->edx;
+            uint64_t* res_ptr = (uint64_t*)regs->esi;
+            uint32_t whence = regs->edi;
+
+            if (fd >= 32 || fd_table[fd] == NULL) {
+                return -9; // -EBADF
+            }
+
+            vfs_node_t* node = fd_table[fd];
+            uint64_t offset = ((uint64_t)offset_high << 32) | offset_low;
+            uint32_t new_offset = node->size;
+
+            if (whence == 0) {         // SEEK_SET
+                new_offset = (uint32_t)offset;
+            } else if (whence == 1) {  // SEEK_CUR
+                new_offset = node->size;
+            } else if (whence == 2) {  // SEEK_END
+                new_offset = node->size + (uint32_t)offset;
+            } else {
+                return -22; // -EINVAL
+            }
+
+            if (res_ptr != NULL) {
+                *res_ptr = (uint64_t)new_offset;
+            }
+
+            return 0;
+        }
+
         default:
             char stub_buf[16];
             itoa(regs->eax, stub_buf, 10);
 
-            puts_com1("SYS: Unimplemented Linux syscall requested: ");
+            puts_com1("Masix: SYS: Unimplemented Linux syscall requested: ");
             puts_com1(stub_buf);
             puts_com1("\n");
 
