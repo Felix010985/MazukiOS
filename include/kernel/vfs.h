@@ -33,4 +33,30 @@ int32_t vfs_open(const char *path);
 int32_t vfs_read(int fd, void *buf, uint32_t count);
 int32_t vfs_write(int fd, const void *buf, uint32_t count);
 
+typedef struct vfs_node vfs_node_t;
+
+typedef struct {
+    int32_t (*open)(const char *subpath, vfs_node_t *node);
+}   fsdriver_t;
+
+typedef struct mountpoint {
+    char path[32];               // Точка монтирования
+    fsdriver_t *driver;          // Какой драйвер за неё отвечает
+    struct mountpoint *next;     // Ссылочка на следующую точку (для списка)
+} mountpoint_t;
+
+typedef enum {
+    FT_EMPTY = 0,
+    FT_VFS_FILE, // Обычный файл
+    FT_DEVICE    // Символьное устройство
+} file_type_t;
+
+typedef struct file {
+    file_type_t type;    // Тип файла
+    uint32_t offset;     // Оффсет чтения/записи
+    void* private_data;  // Указатель на vfs_node_t ИЛИ на структуру устройства
+} file_t;
+
+extern file_t fd_table[32];
+
 #endif

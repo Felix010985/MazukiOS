@@ -121,6 +121,7 @@ void main(void) {
         }
         else if (strcmp(input, "mazenvfetch") == 0) {
             char os_version[64] = "Unknown OS";
+            char mem[128];
 
             FILE* f = fopen("/proc/version", "r");
             if (f != NULL) {
@@ -129,11 +130,17 @@ void main(void) {
                 }
                 fclose(f);
             }
+            FILE* m = fopen("/proc/meminfo", "r");
+            if (m != NULL) {
+                if (fgets(mem, sizeof(mem), m) !=NULL) {
+                    trim_newline(mem);
+                }
+            }
 
             printf("\033[1;32m     _______    \033[0muser@host\n");
             printf("\033[1;32m   _ \\______ \\   \033[0msystem:   %s\n", os_version);
             printf("\033[1;32m | \\  ___  \\ |  \033[0mpkg:      none [0]\n");
-            printf("\033[1;32m | | /   \\ | |  \033[0mram:      NaN / NaN\n");
+            printf("\033[1;32m | | /   \\ | |  \033[0mram:      %s\n", mem);
             printf("\033[1;32m | | \\___/ | |  \033[0mcpu:      Sugomachip\n");
             printf("\033[1;32m | \\______ \\_|  \033[0minit:     sbsh\n");
             printf("\033[1;32m  \\_______\\     \033[0mshell:    sbsh (v0.2.5 compliant)\n");

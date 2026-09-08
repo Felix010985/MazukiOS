@@ -20,6 +20,12 @@ MUSL_INC  := -I$(MUSL_DIR)/include
 
 SYS_CFLAGS  := -Iinclude -ffreestanding -m32 -nostdlib -fno-stack-protector -fno-pic -O0 -Wall -Wextra -MMD
 USER_CFLAGS := -Iworld $(MUSL_INC) -nostdinc -ffreestanding -m32 -mno-sse -mno-sse2 -fno-stack-protector -fno-pic -O0 -Wall -Wextra -MMD
+#GCC_VER := $(shell gcc -dumpversion)
+#BUILD_DATE := $(shell date -u +"%a %b %d %H:%M:%S UTC %Y")
+#BUILD_NUM := 12
+#SYS_CFLAGS += -DKERN_GCC_VERSION=$(GCC_VER)
+#SYS_CFLAGS += -DKERN_BUILD_DATE="$(BUILD_DATE)"
+#SYS_CFLAGS += -DKERN_BUILD_STR=$(BUILD_NUM)
 
 LDFLAGS := -m elf_i386 -T linker.ld -n --no-warn-rwx-segment
 

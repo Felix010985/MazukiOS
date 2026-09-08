@@ -1,5 +1,6 @@
 compile.sh
 push.sh
+commit.sh
 
 junk/*
 clion/*

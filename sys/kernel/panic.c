@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include "kernel/panic.h"
 #include "kernel/serial.h"
+#include "kernel/vga.h"
 
 // extern void puts_com1(const char* s);
 
@@ -29,6 +30,15 @@ static void put_hex_com1(uint32_t val) {
 }
 
 void kernel_exception_handler(struct exception_registers* regs) {
+    puts_com1("Masix: Panic: Calling vga_bsod(msg);");
+
+    if (regs->int_no < 16) {
+        vga_bsod(exception_names[regs->int_no]);
+    } else {
+        vga_bsod("Unknown Exception");
+    }
+
+    puts_com1("Masix: Panic: Maybe called, disabling interrupts...");
     __asm__ __volatile__("cli");
 
     puts_com1("\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");

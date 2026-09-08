@@ -85,7 +85,40 @@ uint32_t syscall_handler_c(struct syscall_regs* regs) {
             return 0;
 
         case LINUX_SYS_READ:
-            return k_sys_read(regs->ebx, (char*)regs->ecx, regs->edx);
+        {
+            int fd = regs->ebx;
+            char* user_buf = (char*)regs->ecx;
+            uint32_t count = regs->edx;
+
+            if (fd < 3) {
+                extern int32_t k_sys_read(int fd, char* buf, uint32_t count);
+                return k_sys_read(fd, user_buf, count);
+            }
+
+            struct fd_entry {
+                int type;
+                uint32_t offset;
+                void* private_data;
+            };
+
+            // extern struct fd_entry fd_table[32];
+
+            if (fd >= 32 || fd_table[fd].type == 0) { // FT_EMPTY
+                return -9; // -EBADF
+            }
+
+            vfs_node_t* node = (vfs_node_t*)fd_table[fd].private_data;
+
+            if (node && node->read != NULL) {
+                int32_t res = node->read(node, fd_table[fd].offset, count, (uint8_t*)user_buf);
+                if (res > 0) {
+                    fd_table[fd].offset += res;
+                }
+                return res;
+            }
+
+            return 0;
+        }
 
         case LINUX_SYS_WRITE:
             return k_sys_write(regs->ebx, (const char*)regs->ecx, regs->edx);
@@ -301,33 +334,38 @@ uint32_t syscall_handler_c(struct syscall_regs* regs) {
             // edx = offset_low
             // esi = uint64_t* result_ptr
             // edi = whence (SEEK_SET, SEEK_CUR, SEEK_END)
-            extern vfs_node_t* fd_table[32];
             int fd = regs->ebx;
             uint32_t offset_high = regs->ecx;
             uint32_t offset_low = regs->edx;
             uint64_t* res_ptr = (uint64_t*)regs->esi;
             uint32_t whence = regs->edi;
 
-            if (fd >= 32 || fd_table[fd] == NULL) {
+            struct fd_entry {
+                int type;
+                uint32_t offset;
+                void* private_data;
+            };
+            //extern struct fd_entry fd_table[32];
+
+            if (fd >= 32 || fd_table[fd].type == 0) {
                 return -9; // -EBADF
             }
 
-            vfs_node_t* node = fd_table[fd];
+            vfs_node_t* node = (vfs_node_t*)fd_table[fd].private_data;
             uint64_t offset = ((uint64_t)offset_high << 32) | offset_low;
-            uint32_t new_offset = node->size;
 
             if (whence == 0) {         // SEEK_SET
-                new_offset = (uint32_t)offset;
+                fd_table[fd].offset = (uint32_t)offset;
             } else if (whence == 1) {  // SEEK_CUR
-                new_offset = node->size;
+                fd_table[fd].offset += (uint32_t)offset;
             } else if (whence == 2) {  // SEEK_END
-                new_offset = node->size + (uint32_t)offset;
+                fd_table[fd].offset = node->size + (uint32_t)offset;
             } else {
                 return -22; // -EINVAL
             }
 
             if (res_ptr != NULL) {
-                *res_ptr = (uint64_t)new_offset;
+                *res_ptr = (uint64_t)fd_table[fd].offset;
             }
 
             return 0;

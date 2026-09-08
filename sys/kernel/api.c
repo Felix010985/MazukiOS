@@ -7,7 +7,8 @@
 
 extern void tty_write_char(char c);
 extern char keyboard_getc(void);
-extern vfs_node_t* fd_table[];
+//extern vfs_node_t* fd_table[];
+extern file_t fd_table[32];
 
 int32_t k_sys_write(int fd, const char* buf, uint32_t count) {
     if (fd == 1 || fd == 2) {
@@ -15,11 +16,15 @@ int32_t k_sys_write(int fd, const char* buf, uint32_t count) {
         return count;
     }
 
-    if (fd >= 3 && fd < 32 && fd_table[fd] != NULL) {
-        if (fd_table[fd]->write) {
-            return fd_table[fd]->write(fd_table[fd], 0, count, (const uint8_t*)buf);
+    if (fd >= 3 && fd < 32 && fd_table[fd].type == FT_VFS_FILE) {
+        vfs_node_t* node = (vfs_node_t*)fd_table[fd].private_data;
+        if (node && node->write) {
+            int32_t res = node->write(node, fd_table[fd].offset, count, (const uint8_t*)buf);
+            if (res > 0) {
+                fd_table[fd].offset += res;
+            }
+            return res;
         }
-        return -22; // -EINVAL
     }
     return -9; // -EBADF
 }
@@ -57,9 +62,14 @@ int32_t k_sys_read(int fd, char* buf, uint32_t count) {
         return read_bytes;
     }
 
-    if (fd >= 3 && fd < 32 && fd_table[fd] != NULL) {
-        if (fd_table[fd]->read) {
-            return fd_table[fd]->read(fd_table[fd], 0, count, (uint8_t*)buf);
+    if (fd >= 3 && fd < 32 && fd_table[fd].type == FT_VFS_FILE) {
+        vfs_node_t* node = (vfs_node_t*)fd_table[fd].private_data;
+        if (node && node->read) {
+            int32_t res = node->read(node, fd_table[fd].offset, count, (uint8_t*)buf);
+            if (res > 0) {
+                fd_table[fd].offset += res;
+            }
+            return res;
         }
     }
     return -9; // -EBADF

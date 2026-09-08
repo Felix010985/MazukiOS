@@ -20,6 +20,32 @@ void* memcpy(void* dst, const void* src, unsigned int n) {
     return dst;
 }
 
+int strncmp(const char *s1, const char *s2, register size_t n) {
+    register unsigned char u1, u2;
+
+    while (n-- > 0)
+    {
+        u1 = (unsigned char) *s1++;
+        u2 = (unsigned char) *s2++;
+        if (u1 != u2)
+            return u1 - u2;
+        if (u1 == '\0')
+            return 0;
+    }
+    return 0;
+}
+
+char* strncpy(char* dst, const char* src, size_t n) {
+    size_t i;
+    for (i = 0; i < n && src[i] != '\0'; i++) {
+        dst[i] = src[i];
+    }
+    for (; i < n; i++) {
+        dst[i] = '\0';
+    }
+    return dst;
+}
+
 void* memset(void* dst, int value, unsigned int n) {
     unsigned char* d = dst;
     for (unsigned int i = 0; i < n; i++) d[i] = (unsigned char)value;

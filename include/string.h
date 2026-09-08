@@ -1,5 +1,7 @@
 void* memcpy(void* dst, const void* src, unsigned int n);
 void* memset(void* dst, int value, unsigned int n);
+int strncmp(const char *s1, const char *s2, register size_t n);
+char* strncpy(char* dst, const char* src, size_t n);
 int memcmp(const void *s1, const void *s2, size_t n);
 unsigned int strlen(const char* s);
 char* strcpy(char* dst, const char* src);

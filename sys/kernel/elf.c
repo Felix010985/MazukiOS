@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stddef.h>
+#include "kernel/serial.h"
 
 typedef struct {
     unsigned char e_ident[16];
@@ -43,7 +44,11 @@ void* elf_load_binary(uint32_t file_start) {
         elf_header->e_ident[2] != 'L'  ||
         elf_header->e_ident[3] != 'F')
     {
-        printf("ELF: Invalid magic signature!\n");
+        // printf("ELF: Invalid magic signature!\n"); \\
+
+        /* Вывод в com1 надежнее чем лепить символы в tty */
+        puts_com1("Masix: ELF: Invalid magic signature!\n");
+        puts_com1((const char *)elf_header);
         return NULL;
     }
 
