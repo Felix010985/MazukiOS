@@ -1,3 +1,12 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
+/*
+ * Masix Kernel
+ * Copyright (C) 2026, FelixProfi. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 2 of the License.
+ */
 #include "kernel/gdt.h"
 #include "kernel/io.h"
 #include "kernel/filesystem.h"
@@ -63,6 +72,10 @@ void unpack_initramfs(uint32_t archive_start, uint32_t archive_size) {
     while (ptr < end) {
         struct cpio_newc_header* header = (struct cpio_newc_header*)ptr;
         if (memcmp(header->c_magic, "070701", 6) != 0) break;
+        /* Парсим заголовок cpio образа виртуального загрузочного диска (initramfs)
+         * Если не подходит -- прерываем загрузку
+         * После пары проверок прыгаем в распакованный образ сообщая об этом в последовательный порт
+         */
 
         uint32_t namesize = parse_hex_ascii(header->c_namesize, 8);
         uint32_t filesize = parse_hex_ascii(header->c_filesize, 8);
@@ -80,13 +93,18 @@ void unpack_initramfs(uint32_t archive_start, uint32_t archive_size) {
 
             char clean_path[64];
             if (memcmp(filename, "./", 2) == 0) {
-                strcpy(clean_path, filename + 2);
+                // Если есть ./ - сдвигаем указатель на 2 символа вперед
+                strncpy(clean_path, filename + 2, sizeof(clean_path) - 1);
             } else {
-                strcpy(clean_path, filename);
+                // Если ./ нет - копируем строку как есть с самого начала
+                strncpy(clean_path, filename, sizeof(clean_path) - 1);
             }
+
+            clean_path[sizeof(clean_path) - 1] = '\0'; // Гарантируем нуль-терминатор
 
             int idx = fs_create(clean_path);
             if (idx != -1) {
+                /* Регистрируем cpio файл в VFS */
                 fs_write(idx, file_data, filesize);
 
                 puts_com1("Masix: Registered cpio file in VFS: ");
@@ -94,7 +112,7 @@ void unpack_initramfs(uint32_t archive_start, uint32_t archive_size) {
                 puts_com1("\n");
             }
         }
-
+        // Хардкод имени файла /bin/init
         if (strcmp(filename, "./bin/init") == 0 || strcmp(filename, "bin/init") == 0) {
             shell_elf_start = (uint32_t)file_data;
             shell_elf_size = filesize;

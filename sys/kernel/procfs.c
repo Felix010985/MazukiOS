@@ -14,7 +14,7 @@ int32_t procfs_meminfo_read(vfs_node_t *node, uint32_t offset, uint32_t size, ui
     (void)node;
     char mem_data[128];
     char num_buf[32];
-    // тестовые значения памяти для /proc/meminfo
+    // Тестовые значения памяти для /proc/meminfo
     uint32_t total_kb = 16384232;
     uint32_t free_kb  = 12543104;
 
