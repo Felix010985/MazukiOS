@@ -7,7 +7,7 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; version 2 of the License.
  */
-#include <kernel/io.h>
+#include <io.h>
 
 void pic_init(void) {
     outb(0x20, 0x11); outb(0xA0, 0x11);

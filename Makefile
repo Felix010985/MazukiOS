@@ -18,7 +18,7 @@ INITRAMFS_IMG  := $(BUILD_DIR)/initramfs.cpio
 MUSL_DIR  := world/musl
 MUSL_INC  := -I$(MUSL_DIR)/include
 
-SYS_CFLAGS  := -Iinclude -ffreestanding -m32 -nostdlib -fno-stack-protector -fno-pic -O0 -Wall -Wextra -MMD
+SYS_CFLAGS  := -Isys/kernel/include -Iinclude -ffreestanding -m32 -nostdlib -fno-stack-protector -fno-pic -O0 -Wall -Wextra -MMD
 USER_CFLAGS := -Iworld $(MUSL_INC) -nostdinc -ffreestanding -m32 -mno-sse -mno-sse2 -fno-stack-protector -fno-pic -O0 -Wall -Wextra -MMD
 #GCC_VER := $(shell gcc -dumpversion)
 #BUILD_DATE := $(shell date -u +"%a %b %d %H:%M:%S UTC %Y")
@@ -118,7 +118,7 @@ $(GRUB_DIR)/grub.cfg:
 
 .PHONY: clean
 clean:
-	@echo "==== Очистка рабочей директории build/ ===="
+	@echo "\033[1;36m==== Очистка рабочей директории build/ ====\033[0m"
 	rm -rf $(BUILD_DIR)
 
 -include $(DEP_FILES)

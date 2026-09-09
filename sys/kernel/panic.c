@@ -8,9 +8,9 @@
  * the Free Software Foundation; version 2 of the License.
  */
 #include <stdint.h>
-#include "kernel/panic.h"
-#include "kernel/serial.h"
-#include "kernel/vga.h"
+#include <panic.h>
+#include <serial.h>
+#include <vga.h>
 
 // extern void puts_com1(const char* s);
 

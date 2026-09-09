@@ -101,6 +101,18 @@ void main(void) {
         }
         else if (strcmp(input, "ver") == 0) {
             printf("MazukiOS 0.2.5\n");
+            char os_ver[32] = {0};
+
+            FILE* f = fopen("/proc/version", "r");
+            if (f != NULL) {
+                if (fgets(os_ver, sizeof(os_ver), f) != NULL) {
+                    trim_newline(os_ver);
+                }
+                fclose(f);
+                printf("%s\n", os_ver);
+            } else {
+                printf("Failed to read /proc/version\n");
+            }
         }
         else if (strcmp(input, "panic") == 0) {
             __asm__ __volatile__("cli");

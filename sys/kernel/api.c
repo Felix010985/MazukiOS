@@ -1,8 +1,17 @@
-#include "kernel/api.h"
-#include "kernel/vga.h"
-#include "kernel/keyboard.h"
-#include "kernel/alloc.h"
-#include "kernel/vfs.h"
+/* SPDX-License-Identifier: GPL-2.0-only */
+/*
+ * Masix Kernel
+ * Copyright (C) 2026, FelixProfi. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 2 of the License.
+ */
+#include <api.h>
+#include <vga.h>
+#include <keyboard.h>
+#include <alloc.h>
+#include <vfs.h>
 #include <stdint.h>
 
 extern void tty_write_char(char c);

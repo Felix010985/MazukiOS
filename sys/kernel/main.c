@@ -7,12 +7,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; version 2 of the License.
  */
-#include "kernel/gdt.h"
-#include "kernel/io.h"
-#include "kernel/filesystem.h"
-#include "kernel/idt.h"
-#include "kernel/pit.h"
-#include "kernel/panic.h"
+#include <gdt.h>
+#include <io.h>
+#include <filesystem.h>
+#include <idt.h>
+#include <pit.h>
+#include <panic.h>
 
 #include <stdint.h>
 #include <stddef.h>

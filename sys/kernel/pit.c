@@ -7,9 +7,9 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; version 2 of the License.
  */
-#include "kernel/pit.h"
-#include "kernel/io.h"
-#include "kernel/task.h"
+#include <pit.h>
+#include <io.h>
+#include <task.h>
 #include <stdint.h>
 
 static volatile uint32_t system_ticks = 0;

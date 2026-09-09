@@ -1,11 +1,22 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
+/*
+ * Masix Kernel
+ * Copyright (C) 2026, FelixProfi. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 2 of the License.
+ */
 // Kernel LibK
-#include "kernel/vga.h"
+#include <vga.h>
+#include <alloc.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stddef.h>
 
 extern void tty_write_char(char c);
 extern char keyboard_getc(void);
+unsigned int strlen(const char* s);
 
 #ifndef NULL
 #define NULL ((void*)0)
@@ -44,6 +55,53 @@ char* strncpy(char* dst, const char* src, size_t n) {
         dst[i] = '\0';
     }
     return dst;
+}
+
+char* strcat(char* dst, const char* src) {
+    char* p = dst;
+    while (*p) p++; // Находим конец строки dst
+    while (*src) {
+        *p++ = *src++;
+    }
+    *p = '\0';
+    return dst;
+}
+
+char* strncat(char* dst, const char* src, size_t n) {
+    char* p = dst;
+    while (*p) p++; // Находим конец строки dst
+    while (n > 0 && *src) {
+        *p++ = *src++;
+        n--;
+    }
+    *p = '\0';
+    return dst;
+}
+
+char* strchr(const char* s, int c) {
+    while (*s) {
+        if (*s == (char)c) return (char*)s;
+        s++;
+    }
+    if ((char)c == '\0') return (char*)s;
+    return NULL;
+}
+
+char* strrchr(const char* s, int c) {
+    const char* last = NULL;
+    while (*s) {
+        if (*s == (char)c) last = s;
+        s++;
+    }
+    if ((char)c == '\0') return (char*)s;
+    return (char*)last;
+}
+
+char* strdup(const char* s) {
+    unsigned int len = strlen(s) + 1;
+    char* res = alloc(len);
+    if (res) memcpy(res, s, len);
+    return res;
 }
 
 void* memset(void* dst, int value, unsigned int n) {

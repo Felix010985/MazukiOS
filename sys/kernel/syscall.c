@@ -1,7 +1,16 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
+/*
+ * Masix Kernel
+ * Copyright (C) 2026, FelixProfi. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 2 of the License.
+ */
 #include <stdint.h>
 #include <stddef.h>
-#include <kernel/vfs.h>
-#include "kernel/task.h"
+#include <vfs.h>
+#include <task.h>
 
 extern int32_t k_sys_write(int fd, const char* buf, uint32_t count);
 extern int32_t k_sys_read(int fd, char* buf, uint32_t count);
