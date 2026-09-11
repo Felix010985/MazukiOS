@@ -11,6 +11,7 @@
 #include <panic.h>
 #include <serial.h>
 #include <vga.h>
+#include <bsod.h>
 
 // extern void puts_com1(const char* s);
 
@@ -19,6 +20,30 @@
 //     uint32_t int_no, error_code;
 //     uint32_t eip, cs, eflags;
 // };
+
+void bsod(const char* msg) {
+    uint8_t bsod_color = 0x1F;
+    vga_clear(bsod_color);
+
+    print_bsod_str("A problem has been detected and Masix has been shut down to prevent damage\n");
+    print_bsod_str("to your computer.\n\n");
+    print_bsod_str("KERNEL_PANIC\n\n");
+    print_bsod_str("If this is the first time you've seen this Stop error screen,\n");
+    print_bsod_str("restart your computer. If this screen appears again, follow\n");
+    print_bsod_str("these steps:\n\n");
+    print_bsod_str("Check to make sure any new hardware is properly\n");
+    print_bsod_str("installed. If this is a new installation, ask your hardware manufacturer\n");
+    print_bsod_str("for any Masix updates you might need.\n\n");
+    print_bsod_str("If problems continue, disable or remove any newly installed hardware\n");
+    print_bsod_str("or software. Disable BIOS memory options such as caching or shadowing.\n\n");
+    print_bsod_str("Technical Information:\n\n");
+    print_bsod_str("*** STOP: 0x0000007B\n\n");
+    print_bsod_str("*** kernel.org - Address 0xB00B1E55 base at Masix Core\n\n");
+
+    print_bsod_str("Exception info: ");
+    print_bsod_str(msg);
+    print_bsod_str("\n");
+}
 
 static const char* exception_names[] = {
     "Division By Zero", "Debug", "Non Maskable Interrupt", "Breakpoint",
@@ -42,9 +67,9 @@ void kernel_exception_handler(struct exception_registers* regs) {
     puts_com1("Masix: Panic: Calling vga_bsod(msg);");
 
     if (regs->int_no < 16) {
-        vga_bsod(exception_names[regs->int_no]);
+        bsod(exception_names[regs->int_no]);
     } else {
-        vga_bsod("Unknown Exception");
+        bsod("Unknown Exception");
     }
 
     puts_com1("Masix: Panic: Maybe called, disabling interrupts...");

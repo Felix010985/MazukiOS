@@ -28,4 +28,5 @@ typedef enum {
 void vga_putc_color(char c, uint8_t color);
 void vga_putc(char c);
 void vga_update_cursor(void);
+void vga_clear(uint8_t color);
 void vga_bsod(const char* msg);

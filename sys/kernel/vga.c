@@ -69,7 +69,8 @@ void vga_putc(char c) {
     vga_raw_putc(c, 0x0F);
 }
 // вспомогательная функция для вывода BSOD сообщения
-static void print_bsod_str(const char* s) {
+// REFRACTOR: убран static, функция теперь объявлена в bsod.h
+void print_bsod_str(const char* s) {
     uint8_t bsod_color = 0x1F;
     while (*s) {
         if (*s == '\n') {
@@ -84,26 +85,3 @@ static void print_bsod_str(const char* s) {
     }
 }
 
-void vga_bsod(const char* msg) {
-    uint8_t bsod_color = 0x1F;
-    vga_clear(bsod_color);
-
-    print_bsod_str("A problem has been detected and Masix has been shut down to prevent damage\n");
-    print_bsod_str("to your computer.\n\n");
-    print_bsod_str("KERNEL_PANIC\n\n");
-    print_bsod_str("If this is the first time you've seen this Stop error screen,\n");
-    print_bsod_str("restart your computer. If this screen appears again, follow\n");
-    print_bsod_str("these steps:\n\n");
-    print_bsod_str("Check to make sure any new hardware is properly\n");
-    print_bsod_str("installed. If this is a new installation, ask your hardware manufacturer\n");
-    print_bsod_str("for any Masix updates you might need.\n\n");
-    print_bsod_str("If problems continue, disable or remove any newly installed hardware\n");
-    print_bsod_str("or software. Disable BIOS memory options such as caching or shadowing.\n\n");
-    print_bsod_str("Technical Information:\n\n");
-    print_bsod_str("*** STOP: 0x0000007B\n\n");
-    print_bsod_str("*** kernel.org - Address 0xB00B1E55 base at Masix Core\n\n");
-
-    print_bsod_str("Exception info: ");
-    print_bsod_str(msg);
-    print_bsod_str("\n");
-}
