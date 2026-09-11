@@ -23,52 +23,53 @@ extern void puts_com1(const char* s);
 //     uint32_t iov_len;
 // };
 
-#define LINUX_SYS_EXIT            1
-#define LINUX_SYS_FORK            2
-#define LINUX_SYS_READ            3
-#define LINUX_SYS_WRITE           4
-#define LINUX_SYS_OPEN            5
-#define LINUX_SYS_CLOSE           6
-#define LINUX_SYS_EXECVE          11
-#define LINUX_SYS_GETPID          20
-#define LINUX_SYS_BRK             45
-#define LINUX_SYS_IOCTL           54
-#define LINUX_SYS_FCNTL           55
-#define LINUX_SYS_GETDENTS        78
-#define LINUX_SYS_MUNMAP          91
+#define LINUX_RESTART_SYSCALL
+#define MASIX_EXIT            1
+#define MASIX_FORK            2
+#define MASIX_READ            3
+#define MASIX_WRITE           4
+#define MASIX_OPEN            5
+#define MASIX_CLOSE           6
+#define MASIX_EXECVE          11
+#define MASIX_GETPID          20
+#define MASIX_BRK             45
+#define MASIX_IOCTL           54
+#define MASIX_FCNTL           55
+#define MASIX_GETDENTS        78
+#define MASIX_MUNMAP          91
 
-#define LINUX_SYS_FSTAT           108
-#define LINUX_SYS_MODIFY_LDT      123
-#define LINUX_SYS__LLSEEK         140
-#define LINUX_SYS_WRITEV          146
-#define LINUX_SYS_RT_SIGACTION    174
+#define MASIX_FSTAT           108
+#define MASIX_MODIFY_LDT      123
+#define MASIX__LLSEEK         140
+#define MASIX_WRITEV          146
+#define MASIX_RT_SIGACTION    174
 
-#define LINUX_SYS_RT_SIGPROCMASK  175
-#define LINUX_SYS_GETCWD          183
-#define LINUX_SYS_UGETRLIMIT      191
-#define LINUX_SYS_MMAP2           192
-#define LINUX_SYS_FCNTL64         221
-#define LINUX_SYS_TKILL           238
-#define LINUX_SYS_SET_THREAD_AREA 243
+#define MASIX_RT_SIGPROCMASK  175
+#define MASIX_GETCWD          183
+#define MASIX_UGETRLIMIT      191
+#define MASIX_MMAP2           192
+#define MASIX_FCNTL64         221
+#define MASIX_TKILL           238
+#define MASIX_SET_THREAD_AREA 243
 
-#define LINUX_SYS_EXIT_GROUP      252
-#define LINUX_SYS_SET_TID_ADDRESS 258
+#define MASIX_EXIT_GROUP      252
+#define MASIX_SET_TID_ADDRESS 258
 
-#define LINUX_EBADF               9
-#define LINUX_ENOSYS              38
-#define LINUX_SYS_GETGID          64
-#define LINUX_SYS_FSTAT64_ALT     147 // fstat64
-#define LINUX_SYS_STAT64          195
-#define LINUX_SYS_FSTAT64         197
-#define LINUX_SYS_GETUID          199
-#define LINUX_SYS_GETGID32        200
-#define LINUX_SYS_GETEGID         201
-#define LINUX_SYS_GETEUID         202
-#define LINUX_SYS_GETPGID         132
-#define LINUX_SYS_PSELECT6        308
-#define LINUX_SYS_PRLIMIT64       340
-#define LINUX_SYS_STATX           383
-#define LINUX_SYS_CLOCK_GETTIME64 403
+#define LINUX_EBADF           9
+#define LINUX_ENOSYS          38
+#define MASIX_GETGID          64
+#define MASIX_FSTAT64_ALT     147 // fstat64
+#define MASIX_STAT64          195
+#define MASIX_FSTAT64         197
+#define MASIX_GETUID          199
+#define MASIX_GETGID32        200
+#define MASIX_GETEGID         201
+#define MASIX_GETEUID         202
+#define MASIX_GETPGID         132
+#define MASIX_PSELECT6        308
+#define MASIX_PRLIMIT64       340
+#define MASIX_STATX           383
+#define MASIX_CLOCK_GETTIME64 403
 
 
 
@@ -89,11 +90,11 @@ uint32_t current_process_brk = 0x01100000;
 uint32_t syscall_handler_c(struct syscall_regs* regs) {
     switch (regs->eax) {
 
-        case LINUX_SYS_EXIT:
+        case MASIX_EXIT:
             while(1);
             return 0;
 
-        case LINUX_SYS_READ:
+        case MASIX_READ:
         {
             int fd = regs->ebx;
             char* user_buf = (char*)regs->ecx;
@@ -129,10 +130,10 @@ uint32_t syscall_handler_c(struct syscall_regs* regs) {
             return 0;
         }
 
-        case LINUX_SYS_WRITE:
+        case MASIX_WRITE:
             return k_sys_write(regs->ebx, (const char*)regs->ecx, regs->edx);
 
-        case LINUX_SYS_BRK:
+        case MASIX_BRK:
         {
             uint32_t new_brk = regs->ebx;
 
@@ -146,16 +147,16 @@ uint32_t syscall_handler_c(struct syscall_regs* regs) {
             return current_process_brk;
         }
 
-        case LINUX_SYS_FORK:
+        case MASIX_FORK:
         {
             extern int32_t task_fork(struct syscall_regs* regs);
             return task_fork(regs);
         }
 
-        case LINUX_SYS_MODIFY_LDT:
+        case MASIX_MODIFY_LDT:
             return 0;
 
-        case LINUX_SYS_SET_THREAD_AREA:
+        case MASIX_SET_THREAD_AREA:
         {
             uint32_t* user_desc = (uint32_t*)regs->ebx;
 
@@ -174,7 +175,7 @@ uint32_t syscall_handler_c(struct syscall_regs* regs) {
             return 0;
         }
 
-        case LINUX_SYS_WRITEV:
+        case MASIX_WRITEV:
         {
             // ebx = fd (1 для stdout, 2 для stderr)
             // ecx = указатель на массив структур struct iovec
@@ -201,10 +202,10 @@ uint32_t syscall_handler_c(struct syscall_regs* regs) {
             return total_written;
         }
 
-        case LINUX_SYS_SET_TID_ADDRESS:
+        case MASIX_SET_TID_ADDRESS:
             return 1;
 
-        case LINUX_SYS_OPEN:
+        case MASIX_OPEN:
         {
             const char* path = (const char*)regs->ebx;
             if (path == NULL) return -14; // -EFAULT
@@ -216,17 +217,17 @@ uint32_t syscall_handler_c(struct syscall_regs* regs) {
             return fd;
         }
 
-        case LINUX_SYS_IOCTL:
+        case MASIX_IOCTL:
             return 0;
 
-        case LINUX_SYS_GETPID:
+        case MASIX_GETPID:
             extern task_t* current_task;
             return current_task->pid;
 
-        case LINUX_SYS_RT_SIGPROCMASK:
+        case MASIX_RT_SIGPROCMASK:
             return 0;
 
-        case LINUX_SYS_EXIT_GROUP:
+        case MASIX_EXIT_GROUP:
         {
             puts_com1("SYS: Process called exit_group. Cleaning up...\n");
 
@@ -236,26 +237,26 @@ uint32_t syscall_handler_c(struct syscall_regs* regs) {
             return 0;
         }
 
-        case LINUX_SYS_EXECVE:
+        case MASIX_EXECVE:
         {
             // ebx = const char* filename
             extern int32_t task_execve(const char* path, struct syscall_regs* regs);
             return task_execve((const char*)regs->ebx, regs);
         }
 
-        case LINUX_SYS_FCNTL:
+        case MASIX_FCNTL:
             return 0;
 
-        case LINUX_SYS_FSTAT:
+        case MASIX_FSTAT:
             return 0;
 
-        case LINUX_SYS_RT_SIGACTION:
+        case MASIX_RT_SIGACTION:
             return 0;
 
-        case LINUX_SYS_TKILL:
+        case MASIX_TKILL:
             return 0;
 
-        case LINUX_SYS_MMAP2:
+        case MASIX_MMAP2:
         {
             uint32_t length = regs->ecx;
 
@@ -267,10 +268,10 @@ uint32_t syscall_handler_c(struct syscall_regs* regs) {
             return allocated_addr;
         }
 
-        case LINUX_SYS_CLOSE:
+        case MASIX_CLOSE:
             return 0;
 
-        case LINUX_SYS_GETCWD:
+        case MASIX_GETCWD:
         {
             // ebx = char* buf, ecx = unsigned long size
             char* user_buf = (char*)regs->ebx;
@@ -284,59 +285,59 @@ uint32_t syscall_handler_c(struct syscall_regs* regs) {
             return 0;
         }
 
-        case LINUX_SYS_FCNTL64:
+        case MASIX_FCNTL64:
             // ebx = fd, ecx = cmd, edx = arg
             return 0;
 
-        case LINUX_SYS_UGETRLIMIT:
+        case MASIX_UGETRLIMIT:
             // ebx = resource, ecx = struct rlimit*
             return 0;
 
-        case LINUX_SYS_GETDENTS:
+        case MASIX_GETDENTS:
             // ebx = fd, ecx = struct linux_dirent*, edx = count
             return 0;
 
-        case LINUX_SYS_GETUID:
-        case LINUX_SYS_GETEUID:
-        case LINUX_SYS_GETGID:
-        case LINUX_SYS_GETGID32:
-        case LINUX_SYS_GETEGID:
+        case MASIX_GETUID:
+        case MASIX_GETEUID:
+        case MASIX_GETGID:
+        case MASIX_GETGID32:
+        case MASIX_GETEGID:
 
             return 0;
 
-        case LINUX_SYS_STAT64:
-        case LINUX_SYS_FSTAT64:
-        case LINUX_SYS_FSTAT64_ALT:
+        case MASIX_STAT64:
+        case MASIX_FSTAT64:
+        case MASIX_FSTAT64_ALT:
             // ebx = fd или путь, ecx = struct stat*
             return 0;
 
-        case LINUX_SYS_CLOCK_GETTIME64:
+        case MASIX_CLOCK_GETTIME64:
             // ebx = clock_id, ecx = struct timespec64*
             return 0;
 
-        case LINUX_SYS_GETPGID:
+        case MASIX_GETPGID:
             // ebx = pid. Если ebx == 0, возвращаем PGID текущего процесса.
             return 1;
 
-        case LINUX_SYS_PRLIMIT64:
+        case MASIX_PRLIMIT64:
             // ebx = pid, ecx = resource, edx = new_limit, esi = old_limit
             return 0;
 
-        case LINUX_SYS_STATX:
+        case MASIX_STATX:
             // ebx = dfd, ecx = filename, edx = flags, esi = mask, edi = buffer
             return 0;
 
-        case LINUX_SYS_PSELECT6:
+        case MASIX_PSELECT6:
             // ebx = n, ecx = inp, edx = outp, esi = exp, edi = tsp
             return 0;
 
-        case LINUX_SYS_MUNMAP:
+        case MASIX_MUNMAP:
         {
             // ebx = addr, ecx = length
             return 0;
         }
 
-        case LINUX_SYS__LLSEEK:
+        case MASIX__LLSEEK:
         {
             // ebx = fd
             // ecx = offset_high
