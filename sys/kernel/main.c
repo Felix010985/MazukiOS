@@ -16,6 +16,8 @@
 #include <drivers/framebuffer.h>
 #include <vfs.h>
 #include <drivers/network.h>
+#include <vmm.h>
+#include <task.h>
 
 #include <stdint.h>
 #include <stddef.h>
@@ -136,6 +138,13 @@ struct multiboot_tag {
     uint32_t size;
 };
 
+struct multiboot_tag_basic_meminfo {
+    uint32_t type;
+    uint32_t size;
+    uint32_t mem_lower;
+    uint32_t mem_upper;
+};
+
 struct multiboot_tag_module {
     uint32_t type;
     uint32_t size;
@@ -217,8 +226,6 @@ void kernel_main(uint32_t magic, uint32_t addr) {
     extern void exception_div_zero(void);
     idt_register_handler(0, (uint32_t)exception_div_zero, 0x8E);
 
-    pic_init();
-    keyboard_init();
     // pit_init(100);
 
     extern void syscall_init(void);
@@ -233,7 +240,6 @@ void kernel_main(uint32_t magic, uint32_t addr) {
     network_init();
     if (network_available()) puts_com1("Masix: RTL8139 network device initialized.\n");
 
-    // asm volatile("sti");
     puts_com1("BEFORE JUMP\n");
 
     if (magic == 0x36d76289 && addr != 0) {
@@ -244,13 +250,18 @@ void kernel_main(uint32_t magic, uint32_t addr) {
 
             if (tag->type == 0) break;
 
+            if (tag->type == 4) {
+                struct multiboot_tag_basic_meminfo* mem = (struct multiboot_tag_basic_meminfo*)tag;
+                extern void pmm_init(uint32_t mem_lower, uint32_t mem_upper);
+                pmm_init(mem->mem_lower, mem->mem_upper);
+            }
+
             if (tag->type == 3) {
                 struct multiboot_tag_module* mod = (struct multiboot_tag_module*)tag;
                 initramfs_start = mod->mod_start;
                 initramfs_size = mod->mod_end - mod->mod_start;
 
                 puts_com1("Masix: initramfs module located in memory.\n");
-
                 unpack_initramfs(initramfs_start, initramfs_size);
             }
             if (tag->type == 8) framebuffer_init((struct multiboot_tag_framebuffer*)tag);
@@ -259,13 +270,14 @@ void kernel_main(uint32_t magic, uint32_t addr) {
         }
     }
 
-    if (framebuffer_available()) puts_com1("Masix: Linear framebuffer initialized.\n");
-
-    extern void task_init(void);
     task_init();
     puts_com1("Masix: Task manager initialized.\n");
 
+    /* Прямо используем переменные, которые функция unpack_initramfs только что заполнила */
     if (init_elf_start != 0 && init_elf_size != 0) {
+
+        puts_com1("Masix: Loading ELF binary from initramfs memory...\n");
+
         extern void* elf_load_binary(uint32_t file_start);
         void* entry_point = elf_load_binary(init_elf_start);
 
@@ -274,22 +286,28 @@ void kernel_main(uint32_t magic, uint32_t addr) {
 
             extern void task_create(void* entry_point);
             task_create(entry_point);
-
         } else {
             puts_com1("Masix: CRITICAL: ELF binary loading failed! Halted.\n");
             for (;;) { asm volatile("hlt"); }
         }
     } else {
-        puts_com1("Masix:CRITICAL: init.elf module not found in multiboot tags! Halted.\n");
+        puts_com1("Masix: CRITICAL: init.elf variable is NULL! Halted.\n");
         for (;;) { asm volatile("hlt"); }
     }
+
+    pic_init();
+    keyboard_init();
 
     pit_init(100);
     puts_com1("Masix: PIT Timer registered at 100Hz.\n");
 
     puts_com1("Masix: Multitasking started! Jumping to Ring 3...\n");
+    extern void schedule(void);
+    schedule();
 
-    asm volatile("sti");
-
-    for (;;) { asm volatile("hlt"); }
+    for (;;) {
+        puts_com1("Masix: Debug: This message will appear in the serial console if the CPU somehow end here. (Halt NO. 1)\n");
+        asm volatile("hlt");
+    }
 }
+

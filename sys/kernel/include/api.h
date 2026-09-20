@@ -1,3 +1,12 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
+/*
+ * Masix Kernel
+ * Copyright (C) 2026, FelixProfi. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 2 of the License.
+ */
 #ifndef API_H
 #define API_H
 
@@ -9,10 +18,11 @@
 void print(const char* str, uint8_t color);
 void cls(void);
 void read_line(char* buffer, uint8_t color);
-
+int32_t sys_chdir(const char *path);
 void sys_print(const char* str, uint8_t color);
 void sys_cls(void);
 void sys_read_line(char* buffer, uint8_t color);
+int32_t sys_mount(const char *source, const char *target, const char *filesystemtype, unsigned long flags, const void *data);
 
 int strcmp(const char* a, const char* b);
 

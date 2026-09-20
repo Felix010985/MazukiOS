@@ -8,9 +8,11 @@
  * the Free Software Foundation; version 2 of the License.
  */
 #include <halt.h>
+#include <drivers/serial.h>
 
 void halt(void) {
     for (;;) {
+        puts_com1("Masix: Debug: This message will appear in the serial console if the CPU somehow end here. (Halt NO. 2)\n");
         __asm__ __volatile__("hlt");
     }
 }

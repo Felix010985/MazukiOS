@@ -13,6 +13,8 @@
 #include <alloc.h>
 #include <vfs.h>
 #include <stdint.h>
+#include <string.h>
+#include <task.h>
 
 extern void tty_write_char(char c);
 extern char keyboard_getc(void);
@@ -81,6 +83,82 @@ void sys_putc(char c) {
 
 void sys_cls(void) {
     k_sys_write(1, "\033[2J\033[H", 7);
+}
+
+extern task_t* current_task;
+
+int32_t sys_chdir(const char *path) {
+    if (!path) return -14; /* -EFAULT: Битый указатель на строку пути */
+
+        if (!current_task) return -1;
+
+        char new_path[MAX_PATH];
+    memset(new_path, 0, MAX_PATH);
+
+    /* Нормализация пути: проверяем относительный путь или абсолютный */
+    if (path[0] == '/') {
+        /* Если путь начинается с '/' - копируем как есть */
+        strncpy(new_path, path, MAX_PATH - 1);
+    } else {
+        /* Если путь относительный - склеиваем его с текущей директорией CWD текущего процесса */
+        strncpy(new_path, current_task->cwd, MAX_PATH - 1);
+
+        /* Добавляем слеш в конец текущего CWD, если его там нет */
+        uint32_t len = strlen(new_path);
+        if (len > 0 && new_path[len - 1] != '/') {
+            strncat(new_path, "/", MAX_PATH - len - 1);
+        }
+
+        /* Приклеиваем относительный путь, запрошенный процессом */
+        strncat(new_path, path, MAX_PATH - strlen(new_path) - 1);
+    }
+
+    /* Используем VFS: пытаемся открыть путь, чтобы проверить его существование */
+    int32_t fd = vfs_open(new_path);
+    if (fd < 0) {
+        return -2; /* -ENOENT: Такой папки или пути вообще не существует на диске */
+    }
+
+    /* Извлекаем vfs_node_t из fd_table, чтобы проверить тип файла */
+    file_t* file_desc = &fd_table[fd];
+    vfs_node_t* node = (vfs_node_t*)file_desc->private_data;
+
+    if (!node || node->flags != VFS_DIRECTORY) {
+        vfs_close(fd); /* Обязательно закрываем fd, чтобы не упереться в лимит 32 дескриптора */
+        return -20;    /* -ENOTDIR: Путь существует, но это обычный файл, а не папка, это qчень важно,
+        чтобы не происходило повреждение файлов в случае ошибки */
+    }
+
+    /* Путь проверен, это реально директория. Закрываем временный fd */
+    vfs_close(fd);
+
+    /* Обновляем рабочую директорию процесса */
+    strncpy(current_task->cwd, new_path, MAX_PATH - 1);
+
+    return 0;
+}
+
+extern fsdriver_t procfs_driver;
+extern fsdriver_t devtmpfs_driver;
+
+int32_t sys_mount(const char *source, const char *target, const char *filesystemtype, unsigned long flags, const void *data) {
+    if (!target || !filesystemtype) {
+        return -1;
+    }
+
+    fsdriver_t *selected_driver = NULL;
+    /* Находим какую именно файловую систему пытались примонтировать, и
+     * обозначаем драйвер для соответствующей
+     */
+    if (strcmp(filesystemtype, "proc") == 0) {
+        selected_driver = &procfs_driver;
+    } else if (strcmp(filesystemtype, "devtmpfs") == 0) {
+        selected_driver = &devtmpfs_driver;
+    } else {
+        return -2; // ENODEV
+    }
+
+    return vfs_mount(target, selected_driver);
 }
 
 void* malloc(size_t size) {

@@ -1,0 +1,3 @@
+[submodule "world/musl"]
+	path = world/musl
+	url = https://github.com/kraj/musl.git

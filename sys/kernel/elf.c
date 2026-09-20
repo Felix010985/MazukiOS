@@ -10,6 +10,8 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <drivers/serial.h>
+#include <vmm.h>
+#include <pmm.h>
 
 typedef struct {
     unsigned char e_ident[16];
@@ -48,16 +50,16 @@ extern void printf(const char* fmt, ...);
 void* elf_load_binary(uint32_t file_start) {
     Elf32_Ehdr* elf_header = (Elf32_Ehdr*)file_start;
 
-    if (elf_header->e_ident[0] != 0x7F ||
-        elf_header->e_ident[1] != 'E'  ||
-        elf_header->e_ident[2] != 'L'  ||
-        elf_header->e_ident[3] != 'F')
+    if (elf_header->e_ident[0] != 0x7F || elf_header->e_ident[1] != 'E'  ||
+        elf_header->e_ident[2] != 'L'  || elf_header->e_ident[3] != 'F')
     {
-        // printf("ELF: Invalid magic signature!\n"); \\
-
-        /* Вывод в com1 надежнее чем лепить символы в tty */
         puts_com1("Masix: ELF: Invalid magic signature!\n");
-        puts_com1((const char *)elf_header);
+        return NULL;
+    }
+
+    /* Создаем новое независимое пространство виртуальной памяти для процесса */
+    if (vmm_userspace_create() != 0) {
+        puts_com1("Masix: ELF: Failed to create user space page directory!\n");
         return NULL;
     }
 
@@ -65,13 +67,47 @@ void* elf_load_binary(uint32_t file_start) {
 
     for (int i = 0; i < elf_header->e_phnum; i++) {
         if (phdr[i].p_type == PT_LOAD) {
-            memcpy((void*)phdr[i].p_vaddr, (void*)(file_start + phdr[i].p_offset), phdr[i].p_filesz);
 
+            uint32_t start_vaddr = phdr[i].p_vaddr;
+            uint32_t end_vaddr = start_vaddr + phdr[i].p_memsz;
+
+            uint32_t page_start = start_vaddr & ~0xFFF;
+            uint32_t page_end = (end_vaddr + 0xFFF) & ~0xFFF;
+
+            /* Идем по страницам, выделяем память и мапим её */
+            for (uint32_t vaddr = page_start; vaddr < page_end; vaddr += PAGE_SIZE) {
+                uint32_t phys = pmm_alloc_zeroed();
+                if (!phys) {
+                    puts_com1("Masix: ELF: Out of physical memory!\n");
+                    return NULL;
+                }
+                // Мапим виртуальный адрес на выделенную физическую страницу
+                // Флаг PTE_W берем, если сегмент ELF разрешает запись.
+                uint32_t flags = (phdr[i].p_flags & 0x2) ? PAGE_WRITE : 0;
+                vmm_user_map(vaddr, phys, flags);
+            }
+
+            /* Копируем данные из initramfs в только что замапленную виртуальную память */
+            if (phdr[i].p_filesz > 0) {
+                memcpy((void*)start_vaddr, (void*)(file_start + phdr[i].p_offset), phdr[i].p_filesz);
+            }
+
+            /* Если размер в памяти больше размера в файле, обнуляем остаток */
             if (phdr[i].p_memsz > phdr[i].p_filesz) {
-                memset((void*)(phdr[i].p_vaddr + phdr[i].p_filesz), 0, phdr[i].p_memsz - phdr[i].p_filesz);
+                uint32_t bss_start = start_vaddr + phdr[i].p_filesz;
+                uint32_t bss_size = phdr[i].p_memsz - phdr[i].p_filesz;
+                memset((void*)bss_start, 0, bss_size);
             }
         }
     }
 
-    return (void*)elf_header->e_entry;
+    /* Загружаем свежесозданный каталог страниц в регистр CR3 процессора,
+     * чтобы активировать изолированное адресное пространство этой программы.
+     */
+    vmm_user_switch();
+    uint32_t entry = elf_header->e_entry;
+    __asm__ volatile("" : : "a"(entry));
+
+    return (void*)entry;
+    //return (void*)elf_header->e_entry;
 }

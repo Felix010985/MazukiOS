@@ -62,15 +62,16 @@ static void put_hex_com1(uint32_t val) {
 }
 
 void kernel_exception_handler(struct exception_registers* regs) {
-    puts_com1("Masix: Panic: Calling vga_bsod(msg);");
+    puts_com1("Masix: Panic: Calling vga_bsod(msg);\n");
 
     if (regs->int_no < 16) {
         bsod(exception_names[regs->int_no]);
     } else {
         bsod("Unknown Exception");
     }
+    puts_com1("Masix: Panic: Probably called by now, if not in LFB mode\n");
 
-    puts_com1("Masix: Panic: Maybe called, disabling interrupts...");
+    puts_com1("Masix: Panic: Maybe called, disabling interrupts...\n");
     __asm__ __volatile__("cli");
 
     puts_com1("\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");

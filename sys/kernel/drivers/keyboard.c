@@ -16,8 +16,8 @@
 
 #define KBD_BUFFER_SIZE 256
 static char kbd_buffer[KBD_BUFFER_SIZE];
-static int kbd_head = 0;
-static int kbd_tail = 0;
+volatile static int kbd_head = 0;
+volatile static int kbd_tail = 0;
 
 static int shift = 0;
 
@@ -73,7 +73,7 @@ char keyboard_getc(void) {
             kbd_tail = (kbd_tail + 1) % KBD_BUFFER_SIZE;
             return c;
         }
-        //__asm__ volatile("hlt");
+        __asm__ volatile("hlt");
     }
 }
 
@@ -84,14 +84,14 @@ __attribute__((naked)) void keyboard_handler_asm(void) {
     __asm__ __volatile__ (
         "pusha \n\t"
 
+        "mov $0x20, %al \n\t"
+        "out %al, $0x20 \n\t"
+
         "mov $0x10, %ax \n\t"
         "mov %ax, %ds \n\t"
         "mov %ax, %es \n\t"
 
         "call keyboard_handler_c \n\t"
-
-        "mov $0x20, %al \n\t"
-        "out %al, $0x20 \n\t"
 
         "popa \n\t"
         "iret"

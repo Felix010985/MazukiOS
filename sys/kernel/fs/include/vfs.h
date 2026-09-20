@@ -1,3 +1,12 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
+/*
+ * Masix Kernel
+ * Copyright (C) 2026, FelixProfi. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 2 of the License.
+ */
 #ifndef VFS_H
 #define VFS_H
 
@@ -74,5 +83,6 @@ int32_t vfs_socket_send(int fd, const void *buffer, uint32_t length);
 int32_t vfs_socket_recv(int fd, void *buffer, uint32_t length);
 int32_t vfs_socket_sendto(int fd, const void *buffer, uint32_t length, const void *address, uint32_t address_length);
 int32_t vfs_socket_recvfrom(int fd, void *buffer, uint32_t length, void *address, uint32_t *address_length);
+int32_t vfs_mount(const char *target, fsdriver_t *driver);
 
 #endif

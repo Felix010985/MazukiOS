@@ -5,12 +5,18 @@ Makefile_cp
 Makefile_original
 configure
 
+/*
+!/*/
+!*.*
+
 junk/*
 clion/*
 cmake-build-debug/*
 .idea/*
 include/libc.h
 compile_and_run.sh
+tools/*
+!tools/*.c
 
 CMakeLists.txt
 

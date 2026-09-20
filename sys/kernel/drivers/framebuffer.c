@@ -8,8 +8,20 @@
  * the Free Software Foundation; version 2 of the License.
  */
 #include <drivers/framebuffer.h>
+#include <vmm.h>
 
-static uint32_t color_value(uint8_t color) {
+volatile uint8_t* framebuffer = 0;
+uint32_t framebuffer_pitch = 0;
+uint32_t framebuffer_width = 0;
+uint32_t framebuffer_height = 0;
+uint8_t  framebuffer_bpp = 0;
+uint8_t  framebuffer_type = 0;
+
+static uint8_t red_position, red_mask;
+static uint8_t green_position, green_mask;
+static uint8_t blue_position, blue_mask;
+
+uint32_t framebuffer_color_value(uint8_t color) {
     static const uint8_t palette[16][3] = {
         {0,0,0}, {0,0,170}, {0,170,0}, {0,170,170}, {170,0,0}, {170,0,170},
         {170,85,0}, {170,170,170}, {85,85,85}, {85,85,255}, {85,255,85},
@@ -21,7 +33,8 @@ static uint32_t color_value(uint8_t color) {
     return ((uint32_t)r << red_position) | ((uint32_t)g << green_position) | ((uint32_t)b << blue_position);
 }
 
-static void put_pixel(uint32_t x, uint32_t y, uint32_t value) {
+void framebuffer_put_pixel(uint32_t x, uint32_t y, uint32_t value) {
+    if (x >= framebuffer_width || y >= framebuffer_height) return;
     volatile uint8_t* pixel = framebuffer + y * framebuffer_pitch + x * ((framebuffer_bpp + 7) / 8);
     if (framebuffer_bpp == 32) *(volatile uint32_t*)pixel = value;
     else if (framebuffer_bpp == 24) { pixel[0] = value; pixel[1] = value >> 8; pixel[2] = value >> 16; }
@@ -29,9 +42,23 @@ static void put_pixel(uint32_t x, uint32_t y, uint32_t value) {
 }
 
 void framebuffer_init(const struct multiboot_tag_framebuffer* tag) {
-    if (!tag || tag->framebuffer_type != 1 || tag->framebuffer_width < FONT_WIDTH || tag->framebuffer_height < FONT_HEIGHT) return;
+    if (!tag || tag->framebuffer_type != 1) return;
     if (tag->framebuffer_bpp != 15 && tag->framebuffer_bpp != 16 && tag->framebuffer_bpp != 24 && tag->framebuffer_bpp != 32) return;
-    framebuffer = (volatile uint8_t*)(uint32_t)tag->framebuffer_addr;
+    uint32_t phys_addr = tag->framebuffer_addr;
+    /* Обращаемся к VMM и просим замапить физический адрес фреймбуфера на
+     * виртуальный адрес в пространстве ядра (например, 1в1 на 0xFD000000)
+     */
+    uint32_t fb_phys = tag->framebuffer_addr;
+    /* Вычисляем общий размер видеопамяти в байтах */
+    uint32_t fb_size = tag->framebuffer_height * tag->framebuffer_pitch;
+
+    /* Мапим абсолютно все страницы фреймбуфера, чтобы ядро
+     * могло закрасить весь экран целиком, а не только первые 4 КБ как было до патча
+     */
+    for (uint32_t offset = 0; offset < fb_size; offset += 4096) {
+        vmm_kernel_map(fb_phys + offset, fb_phys + offset, 0);
+    }
+    framebuffer = (volatile uint8_t*)phys_addr;
     framebuffer_pitch = tag->framebuffer_pitch; framebuffer_width = tag->framebuffer_width; framebuffer_height = tag->framebuffer_height;
     framebuffer_bpp = tag->framebuffer_bpp; framebuffer_type = tag->framebuffer_type;
     red_position = tag->red_field_position; red_mask = tag->red_mask_size;
@@ -40,37 +67,12 @@ void framebuffer_init(const struct multiboot_tag_framebuffer* tag) {
 }
 
 int framebuffer_available(void) { return framebuffer != 0 && framebuffer_type == 1; }
-uint32_t framebuffer_columns(void) { return framebuffer_width / FONT_WIDTH; }
-uint32_t framebuffer_rows(void) { return framebuffer_height / FONT_HEIGHT; }
 
-void framebuffer_clear(uint8_t color) {
+void framebuffer_clear_color(uint32_t raw_color) {
     if (!framebuffer_available()) return;
-    uint32_t value = color_value(color >> 4);
-    for (uint32_t y = 0; y < framebuffer_height; y++) for (uint32_t x = 0; x < framebuffer_width; x++) put_pixel(x, y, value);
+    for (uint32_t y = 0; y < framebuffer_height; y++) {
+        for (uint32_t x = 0; x < framebuffer_width; x++) {
+            framebuffer_put_pixel(x, y, raw_color);
+        }
+    }
 }
-
-void framebuffer_scroll(uint8_t color) {
-    if (!framebuffer_available()) return;
-    uint32_t bytes = (framebuffer_bpp + 7) / 8;
-    for (uint32_t y = FONT_HEIGHT; y < framebuffer_height; y++) for (uint32_t x = 0; x < framebuffer_width * bytes; x++) framebuffer[(y - FONT_HEIGHT) * framebuffer_pitch + x] = framebuffer[y * framebuffer_pitch + x];
-    uint32_t value = color_value(color >> 4);
-    for (uint32_t y = framebuffer_height - FONT_HEIGHT; y < framebuffer_height; y++) for (uint32_t x = 0; x < framebuffer_width; x++) put_pixel(x, y, value);
-}
-
-void framebuffer_draw_char(uint32_t column, uint32_t row, char c, uint8_t color) {
-    if (!framebuffer_available() || column >= framebuffer_columns() || row >= framebuffer_rows()) return;
-    uint8_t glyph[7] = {0,0,0,0,0,0,0};
-    if (c >= 'a' && c <= 'z') c -= 'a' - 'A';
-    if (c >= 'A' && c <= 'Z') for (int i = 0; i < 7; i++) glyph[i] = font_letters[c - 'A'][i];
-    else if (c >= '0' && c <= '9') for (int i = 0; i < 7; i++) glyph[i] = font_digits[c - '0'][i];
-    else if (c == '-') glyph[3] = glyph[4] = 31;
-    else if (c == '_') glyph[6] = 31;
-    else if (c == '.') glyph[6] = 4;
-    else if (c == ':') glyph[2] = glyph[5] = 4;
-    else if (c == '/') { glyph[1] = 2; glyph[2] = 2; glyph[3] = 4; glyph[4] = 8; glyph[5] = 16; }
-    uint32_t foreground = color_value(color & 15), background = color_value((color >> 4) & 15);
-    for (uint32_t y = 0; y < FONT_HEIGHT; y++) for (uint32_t x = 0; x < FONT_WIDTH; x++)
-        put_pixel(column * FONT_WIDTH + x, row * FONT_HEIGHT + y, y < 7 && x > 0 && x < 6 && (glyph[y] & (1 << (5 - x))) ? foreground : background);
-}
-
-void framebuffer_erase_char(uint32_t column, uint32_t row, uint8_t color) { framebuffer_draw_char(column, row, ' ', color); }

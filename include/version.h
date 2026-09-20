@@ -3,6 +3,6 @@
 #define OS_DATA "MazukiOS 0.2.5"
 
 static const char os_data[] = OS_DATA;
-static const char version_data[] = "Masix version 0.2.5_48 on " OS_DATA;
+static const char version_data[] = "Masix version 0.2.5_69 on " OS_DATA;
 
 #endif

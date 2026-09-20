@@ -11,6 +11,9 @@
 #include <syscall.h>
 #include <alloc.h>
 #include <string.h>
+#include <vfs.h>
+#include <vmm.h>
+#include <pmm.h>
 
 task_t* current_task = NULL;
 static task_t* task_list_head = NULL;
@@ -25,6 +28,9 @@ void task_init(void) {
     init_task->esp = 0;
     init_task->kernel_stack = (uint8_t*)malloc(4096);
     init_task->user_stack = (uint8_t*)malloc(4096);
+
+    /* Задаем стартовую директорию по умолчанию */
+    strcpy(init_task->cwd, "/");
 
     init_task->next = init_task;
     task_list_head = init_task;
@@ -46,6 +52,9 @@ void task_create(void* entry_point) {
     ustack[-4] = 1;  // argc = 1
 
     uint32_t* kstack = (uint32_t*)((uint32_t)new_task->kernel_stack + 4096);
+
+    extern uint32_t vmm_user_cr3(void);
+    new_task->cr3 = vmm_user_cr3();
 
     kstack[-1] = 0x23;                              // User SS
     kstack[-2] = (uint32_t)new_task->user_stack + 4096 - 16; // User ESP
@@ -70,8 +79,47 @@ void task_create(void* entry_point) {
 
 void schedule(void) {
     if (!current_task) return;
+
+    /* Переставляем указатель на следующий таск */
     current_task = current_task->next;
+
+    if (current_task == task_list_head) {
+        current_task = current_task->next;
+    }
+
+    if (!current_task) return;
+
+    /* Прыжок:
+     * Если у задачи cr3 равен 0, используем глобальный каталог ядра kernel_page_directory
+     */
+    uint32_t target_cr3 = current_task->cr3;
+    if (target_cr3 == 0) {
+        extern uint32_t kernel_page_directory;
+        target_cr3 = (uint32_t)&kernel_page_directory;
+    }
+    /* Обновляем стек ядра в TSS перед каждым переключением контекста,
+     * чтобы аппаратные прерывания (клавиатура, таймер) знали куда сбрасывать регистры в Ring 0.
+     */
+    extern void write_tss(int idx, uint16_t ss0, uint32_t esp0);
+    write_tss(5, 0x10, (uint32_t)current_task->kernel_stack + 4096);
+    __asm__ volatile (
+        /* Загружаем финальный CR3 в процессор */
+        "mov %0, %%cr3 \n\t"
+
+        /* Подменяем стек процессора на kstack задачи init */
+        "mov %1, %%esp \n\t"
+
+        /* Выталкиваем EDI, ESI, EBP, EBX, EDX, ECX, EAX */
+        "popa \n\t"
+
+        /* Аппаратный iret в Ring 3 */
+        "iret \n\t"
+        :
+        : "r"(target_cr3), "r"(current_task->esp)
+        : "memory"
+    );
 }
+
 
 int32_t task_fork(struct syscall_regs* regs) {
     task_t* child = (task_t*)malloc(sizeof(task_t));
@@ -85,6 +133,8 @@ int32_t task_fork(struct syscall_regs* regs) {
     memcpy(child->user_stack, current_task->user_stack, 4096);
 
     memcpy(child->kernel_stack, current_task->kernel_stack, 4096);
+
+    strcpy(child->cwd, current_task->cwd);
 
     int32_t kstack_offset = (int32_t)child->kernel_stack - (int32_t)current_task->kernel_stack;
     int32_t ustack_offset = (int32_t)child->user_stack - (int32_t)current_task->user_stack;
@@ -158,39 +208,78 @@ void task_destroy(void) {
     );
 }
 int32_t task_execve(const char* path, struct syscall_regs* regs) {
-    (void)regs;
-    extern uint32_t init_elf_start;
-    extern uint32_t init_elf_size;
+    if (!path) return -14; // -EFAULT
 
-    if (init_elf_start == 0 || init_elf_size == 0) {
-        return -2; // -ENOENT
+    /* Открываем файл через VFS */
+    int32_t fd = vfs_open(path);
+    if (fd < 0) {
+        return -2; // -ENOENT (Файл не найден)
     }
 
-    puts_com1("Masix: sys_execve reloading process image...\n");
+    /* Достаем ноду из таблицы файлов */
+    file_t* file_desc = &fd_table[fd];
+    vfs_node_t* node = (vfs_node_t*)file_desc->private_data;
 
+    if (!node || node->flags != VFS_FILE) {
+        vfs_close(fd);
+        return -13; // -EACCES (Permission denied, если это папка)
+    }
+
+    /* Выделяем память под размер ELF-файла */
+    void* elf_buffer = malloc(node->size);
+    if (!elf_buffer) {
+        vfs_close(fd);
+        return -12; // -ENOMEM
+    }
+
+    /* Читаем бинарник с диска в память ядра */
+    int32_t bytes_read = vfs_read(fd, elf_buffer, node->size);
+    vfs_close(fd); // Сразу закрываем файл
+
+    if (bytes_read < (int32_t)node->size) {
+        free(elf_buffer);
+        return -5; // -EIO
+    }
+
+    puts_com1("Masix: sys_execve reloading process image from VFS...\n");
+
+    /* Загружаем считанный ELF */
     extern void* elf_load_binary(uint32_t file_start);
-    void* entry_point = elf_load_binary(init_elf_start);
+    void* entry_point = elf_load_binary((uint32_t)elf_buffer);
+
+    free(elf_buffer); // Освобождаем временный буфер
 
     if (entry_point == NULL) {
         return -8; // -ENOEXEC
     }
 
+    /* Сбрасываем контекст потока и настраиваем правильный стек */
     uint32_t* ustack = (uint32_t*)((uint32_t)current_task->user_stack + 4096);
-    ustack[-1] = 0; // envp = NULL
-    ustack[-2] = 0; // argv = NULL
-    ustack[-3] = 0; // argc = 0
+
+    /* Выделяем место под саму строку аргумента на верхушке стека */
+    char* ustack_str = (char*)ustack - 32;
+    strncpy(ustack_str, path, 31); /* Копируем туда имя запущенного файла, например "bin/init" */
+
+    /* Пересчитываем указатель стека под выравнивание */
+    uint32_t* args_ptr = (uint32_t*)ustack_str;
+
+    args_ptr[-1] = 0;                  // envp[0] = NULL (указатель на массив строк)
+    args_ptr[-2] = 0;                  // argv[1] = NULL (конец массива аргументов)
+    args_ptr[-3] = (uint32_t)ustack_str; // argv[0] = указатель на строку с именем файла
+
+    /* Сами аргументы для функции main(argc, argv, envp) */
+    args_ptr[-4] = 0;                  // Ссылка на envp для main
+    args_ptr[-5] = (uint32_t)&args_ptr[-3]; // Ссылка на argv для main (&argv[0])
+    args_ptr[-6] = 1;                  // argc = 1
 
     uint32_t* kstack_iret = (uint32_t*)((uint32_t)current_task->kernel_stack + 4096);
-    kstack_iret[-2] = (uint32_t)ustack - 12;
+    /* Передаем новый указатель юзер-стека в iret фрейм */
+    kstack_iret[-2] = (uint32_t)&args_ptr[-6];
     kstack_iret[-5] = (uint32_t)entry_point;
 
-    regs->eax = 0;
-    regs->ebx = 0;
-    regs->ecx = 0;
-    regs->edx = 0;
-    regs->esi = 0;
-    regs->edi = 0;
-    regs->ebp = 0;
+    /* Обнуляем регистры общего назначения перед прыжком */
+    regs->eax = 0; regs->ebx = 0; regs->ecx = 0; regs->edx = 0;
+    regs->esi = 0; regs->edi = 0; regs->ebp = 0;
 
     puts_com1("Masix: sys_execve switch complete!\n");
     return 0;

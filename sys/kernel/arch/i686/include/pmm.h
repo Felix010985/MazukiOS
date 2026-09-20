@@ -7,18 +7,18 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; version 2 of the License.
  */
-#ifndef USER_API_H
-#define USER_API_H
+#ifndef PMM_H
+#define PMM_H
 
 #include <stdint.h>
 #include <stddef.h>
 
-#define MAX_INPUT 128
+#define PAGE_SIZE 4096
 
-void print(const char* str, uint8_t color);
-void cls(void);
-void read_line(char* buffer, uint8_t color);
-
-int strcmp(const char* a, const char* b);
+void pmm_init(uint32_t mem_lower, uint32_t mem_upper);
+uint32_t pmm_alloc_page(void);
+uint32_t pmm_alloc_zeroed(void);
+void pmm_free_page(uint32_t phys);
+uint32_t pmm_free_count(void);
 
 #endif

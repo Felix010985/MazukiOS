@@ -550,3 +550,27 @@ int32_t vfs_socket_recvfrom(int fd, void *buffer, uint32_t length, void *address
     socket->count--;
     return copied;
 }
+
+extern mountpoint_t *mountpoints_list;
+
+int32_t vfs_mount(const char *target, fsdriver_t *driver) {
+    if (!target || !driver) {
+        return -1; // EINVAL
+    }
+
+    mountpoint_t *new_mp = (mountpoint_t *)malloc(sizeof(mountpoint_t));
+    if (!new_mp) {
+        return -1; // ENOMEM
+    }
+
+    strncpy(new_mp->path, target, sizeof(new_mp->path) - 1);
+    new_mp->path[sizeof(new_mp->path) - 1] = '\0';
+
+    new_mp->driver = driver;
+
+    new_mp->next = mountpoints_list;
+    mountpoints_list = new_mp;
+
+    puts_com1("Masix: Mount: Successfully mounted at: %s\n", new_mp->path);
+    return 0;
+}

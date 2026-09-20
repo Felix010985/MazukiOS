@@ -12,6 +12,7 @@
 #include <syscall.h>
 #include <vfs.h>
 #include <task.h>
+#include <api.h>
 
 extern int32_t k_sys_write(int fd, const char* buf, uint32_t count);
 extern int32_t k_sys_read(int fd, char* buf, uint32_t count);
@@ -166,6 +167,24 @@ uint32_t syscall_handler_c(struct syscall_regs* regs) {
             extern task_t* current_task;
             return current_task->pid;
 
+        case MASIX_MOUNT:
+        {
+            // ebx = const char* source
+            // ecx = const char* target
+            // edx = const char* filesystemtype
+            // esi = unsigned long flags
+            // edi = const void* data
+            const char* source = (const char*)regs->ebx;
+            const char* target = (const char*)regs->ecx;
+            const char* fstype = (const char*)regs->edx;
+            unsigned long flags = (unsigned long)regs->esi;
+            const void* data    = (const void*)regs->edi;
+
+            extern int32_t sys_mount(const char* source, const char* target, const char* filesystemtype, unsigned long flags, const void* data);
+
+            return sys_mount(source, target, fstype, flags, data);
+        }
+
         case MASIX_RT_SIGPROCMASK:
             return 0;
 
@@ -186,11 +205,29 @@ uint32_t syscall_handler_c(struct syscall_regs* regs) {
             return task_execve((const char*)regs->ebx, regs);
         }
 
+        case MASIX_CHDIR:
+        {
+            const char* path = (const char*)regs->ebx;
+            return sys_chdir(path);
+        }
+
         case MASIX_FCNTL:
             return 0;
 
         case MASIX_FSTAT:
             return 0;
+
+        case MASIX_WAIT4:
+        {
+            int32_t pid = (int32_t)regs->ebx;
+            int32_t* wstatus = (int32_t*)regs->ecx;
+
+            if (wstatus) {
+                *wstatus = 0;
+            }
+
+            return pid;
+        }
 
         case MASIX_RT_SIGACTION:
             return 0;
@@ -252,6 +289,28 @@ uint32_t syscall_handler_c(struct syscall_regs* regs) {
         case MASIX_FSTAT64_ALT:
             // ebx = fd или путь, ecx = struct stat*
             return 0;
+
+        case MASIX_POLL:
+        {
+            struct pollfd {
+                int fd;
+                short events;
+                short revents;
+            } *fds = (struct pollfd*)regs->ebx;
+
+            uint32_t nfds = (uint32_t)regs->ecx;
+
+            if (fds) {
+                for (uint32_t i = 0; i < nfds; i++) {
+                    /* Копируем запрошенные события в возвращаемые,
+                     * имитируя, что дескриптор полностью готов
+                     */
+                    fds[i].revents = fds[i].events & (0x0001 | 0x0004); /* POLLIN | POLLOUT */
+                }
+            }
+
+            return nfds; /* Возвращаем количество готовых дескрипторов */
+        }
 
         case MASIX_CLOCK_GETTIME64:
             // ebx = clock_id, ecx = struct timespec64*

@@ -1,5 +1,5 @@
-#include "kernel/api.h"
-#include "kernel/vga.h"
+#include <api.h>
+#include <drivers/vga.h>
 #include <stdarg.h>
 
 void print_str(const char* s); // стринги

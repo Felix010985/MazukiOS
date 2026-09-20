@@ -1,3 +1,12 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
+/*
+ * Masix Kernel
+ * Copyright (C) 2026, FelixProfi. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 2 of the License.
+ */
 #pragma once
 
 #include <stdint.h>
@@ -11,21 +20,25 @@
 #define MASIX_OPEN            5
 #define MASIX_CLOSE           6
 #define MASIX_EXECVE          11
+#define MASIX_CHDIR           12
 #define MASIX_GETPID          20
+#define MASIX_MOUNT           21
 #define MASIX_PIPE            42
 #define MASIX_GETGID          64
-#define MASIX_GETPGID         132
-#define MASIX_SOCKETCALL      102
 #define MASIX_BRK             45
 #define MASIX_IOCTL           54
 #define MASIX_FCNTL           55
 #define MASIX_GETDENTS        78
 #define MASIX_MUNMAP          91
+#define MASIX_SOCKETCALL      102
 #define MASIX_FSTAT           108
+#define MASIX_WAIT4           114
 #define MASIX_MODIFY_LDT      123
+#define MASIX_GETPGID         132
 #define MASIX__LLSEEK         140
 #define MASIX_WRITEV          146
 #define MASIX_FSTAT64_ALT     147
+#define MASIX_POLL            168
 #define MASIX_RT_SIGACTION    174
 #define MASIX_RT_SIGPROCMASK  175
 #define MASIX_GETCWD          183
