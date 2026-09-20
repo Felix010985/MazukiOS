@@ -16,6 +16,7 @@ cmake-build-debug/*
 .idea/*
 include/libc.h
 world/musl/*
+world/sysroot/
 compile_and_run.sh
 tools/*
 !tools/*.c
