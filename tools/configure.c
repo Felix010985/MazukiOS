@@ -17,13 +17,17 @@ const char* MANAGERS[] = {
     "/usr/bin/pacman",
     "/usr/bin/apt-get"
 };
-
-char* VOID_ARGS[]    = {"/usr/bin/sudo", "xbps-install", "-Sy", "clang", "lld", "cpio", "grub", "qemu", "xorriso", "git", NULL};
-char* ALPINE_ARGS[]  = {"/usr/bin/sudo", "apk", "add", "clang", "lld", "cpio", "grub", "xorriso", "qemu-system-x86_64", "git", NULL};
-char* SLACK_ARGS[]   = {"/usr/bin/sudo", "slackpkg", "install", "clang", "lld", "cpio", "grub", "qemu", "git", NULL};
-char* FREEBSD_ARGS[] = {"/usr/bin/sudo", "pkg", "install", "-y", "llvm", "lld", "cpio", "grub2-mkrescue", "qemu-devel", "git", NULL};
-char* ARCH_ARGS[]    = {"/usr/bin/sudo", "pacman", "-S", "--needed", "--noconfirm", "clang", "lld", "cpio", "grub", "xorriso", "qemu-desktop", "git", NULL};
-char* DEBIAN_ARGS[]  = {"/usr/bin/sudo", "apt-get", "install", "-y", "clang", "lld", "cpio", "grub-pc-bin", "xorriso", "qemu-system-x86", "git", NULL};
+/* КОД НИЖЕ:
+ * Никакой гарантии что пакеты называются именно так, если что то уже не соответствует названиям здесь - извините.
+ * У меня нет возможности проверить абсолютно все пункты здесь ибо мой хост это исключительно Void Linux и MazukiOS.
+ * Использовать на свой страх и риск
+ */
+char* VOID_ARGS[]    = {"/usr/bin/sudo", "xbps-install", "-Sy", "clang", "lld", "llvm", "base-devel", "cpio", "grub", "qemu", "xorriso", "git", NULL};
+char* ALPINE_ARGS[]  = {"/usr/bin/sudo", "apk", "add", "clang", "lld", "llvm", "build-base", "cpio", "grub", "xorriso", "qemu-system-x86_64", "git", NULL};
+char* SLACK_ARGS[]   = {"/usr/bin/sudo", "slackpkg", "install", "clang", "lld", "llvm", "cpio", "grub", "qemu", "git", NULL};
+char* FREEBSD_ARGS[] = {"/usr/bin/sudo", "pkg", "install", "-y", "llvm", "lld", "cpio", "grub2-mkrescue", "xorriso", "qemu-devel", "git", NULL};
+char* ARCH_ARGS[]    = {"/usr/bin/sudo", "pacman", "-S", "--needed", "--noconfirm", "base-devel", "clang", "lld", "llvm", "cpio", "grub", "xorriso", "qemu-desktop", "git", NULL};
+char* DEBIAN_ARGS[]  = {"/usr/bin/sudo", "apt-get", "install", "-y", "build-essential", "clang", "lld", "llvm", "cpio", "grub-pc-bin", "xorriso", "qemu-system-x86", "git", NULL};
 
 char** ARGS_MAP[] = {VOID_ARGS, ALPINE_ARGS, SLACK_ARGS, FREEBSD_ARGS, ARCH_ARGS, DEBIAN_ARGS};
 

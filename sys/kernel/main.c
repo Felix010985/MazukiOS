@@ -97,15 +97,23 @@ void unpack_initramfs(uint32_t archive_start, uint32_t archive_size) {
         if (filesize > 0 && strcmp(filename, ".") != 0 && strcmp(filename, "..") != 0) {
 
             char clean_path[64];
+
+            // Если имя в архиве начинается с "./", заменяем "." на "/"
             if (memcmp(filename, "./", 2) == 0) {
-                // Если есть ./ - сдвигаем указатель на 2 символа вперед
-                strncpy(clean_path, filename + 2, sizeof(clean_path) - 1);
-            } else {
-                // Если ./ нет - копируем строку как есть с самого начала
+                clean_path[0] = '/';
+                strncpy(clean_path + 1, filename + 2, sizeof(clean_path) - 2);
+            }
+            // Если имя идет без точки, принудительно вставляем слэш вперед
+            else if (filename[0] != '/') {
+                clean_path[0] = '/';
+                strncpy(clean_path + 1, filename, sizeof(clean_path) - 2);
+            }
+            // Если слэш уже есть, копируем как есть
+            else {
                 strncpy(clean_path, filename, sizeof(clean_path) - 1);
             }
 
-            clean_path[sizeof(clean_path) - 1] = '\0'; // Гарантируем нуль-терминатор
+            clean_path[sizeof(clean_path) - 1] = '\0'; // Гарантируем нуль терминатор
 
             int idx = fs_create(clean_path);
             if (idx != -1) {
@@ -117,6 +125,7 @@ void unpack_initramfs(uint32_t archive_start, uint32_t archive_size) {
                 puts_com1("\n");
             }
         }
+
         // Хардкод имени файла /bin/init
         if (strcmp(filename, "./bin/init") == 0 || strcmp(filename, "bin/init") == 0) {
             init_elf_start = (uint32_t)file_data;

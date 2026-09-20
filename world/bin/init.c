@@ -23,17 +23,30 @@ int main() {
     }
 
     printf("\n\033[1;36m[ INFO ] PID 1 (init) успешно запущен!\033[0m\n");
+    int enter;
+
 
     while (1) {
         pid_t pid = fork();
 
         if (pid == 0) {
+            printf("\n\033[1;36m[ INFO ] pid==0\033[0m\n");
+            while (1) {
+                scanf("%d", &enter);
+            }
             char* shell_args[] = {"/bin/shell", NULL};
-            execv(shell_args[0], shell_args);
-
+            char* envp[] = {NULL};
+            execve(shell_args[0], shell_args, envp);
             perror("ошибка запуска /bin/shell");
+            while (1) {
+                __asm__ volatile("hlt");
+            }
             exit(1);
         } else if (pid > 0) {
+            printf("\n\033[1;36m[ INFO ] pid > 0\033[0m\n");
+            // while (1) {
+            //     scanf("%d", &enter);
+            // }
             int status;
             pid_t exited_pid;
 
@@ -44,6 +57,10 @@ int main() {
                 }
             }
         } else {
+            printf("\n\033[1;36m[ INFO ] else...\033[0m\n");
+            while (1) {
+                scanf("%d", &enter);
+            }
             perror("fork упал в init");
             sleep(2);
         }

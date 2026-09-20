@@ -36,7 +36,7 @@ static inline uint32_t idx2(uint32_t v) { return (v >> 22) & 0x3FF; }
 static inline uint32_t idx1(uint32_t v) { return (v >> 12) & 0x3FF; }
 static inline bool canonical_user(uint32_t va) { return va < USER_TOP; }
 
-static inline uint32_t* table(uint32_t phys) {
+uint32_t* table(uint32_t phys) {
     if (!phys || (phys & (PAGE_SIZE - 1))) return NULL;
     return (uint32_t*)phys;
 }

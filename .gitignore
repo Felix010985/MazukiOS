@@ -15,6 +15,7 @@ clion/*
 cmake-build-debug/*
 .idea/*
 include/libc.h
+world/musl/*
 compile_and_run.sh
 tools/*
 !tools/*.c

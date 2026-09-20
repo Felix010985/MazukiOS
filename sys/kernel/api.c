@@ -161,6 +161,32 @@ int32_t sys_mount(const char *source, const char *target, const char *filesystem
     return vfs_mount(target, selected_driver);
 }
 
+int32_t sys_dup2(int32_t oldfd, int32_t newfd) {
+    if (oldfd < 0 || oldfd >= MAX_FD || newfd < 0 || newfd >= MAX_FD) {
+        return -9; // -EBADF
+    }
+
+    if (fd_table[oldfd].type == FT_EMPTY) {
+        return -9; // -EBADF
+    }
+
+    if (oldfd == newfd) {
+        return newfd;
+    }
+
+    if (fd_table[newfd].type != FT_EMPTY) {
+        vfs_close(newfd);
+        // Или:
+        // fd_table[newfd].type = FT_EMPTY;
+    }
+
+    fd_table[newfd].type = fd_table[oldfd].type;
+    fd_table[newfd].offset = fd_table[oldfd].offset;
+    fd_table[newfd].private_data = fd_table[oldfd].private_data;
+
+    return newfd;
+}
+
 void* malloc(size_t size) {
     return alloc(size);
 }

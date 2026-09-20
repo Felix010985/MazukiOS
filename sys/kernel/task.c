@@ -12,6 +12,7 @@
 #include <alloc.h>
 #include <string.h>
 #include <vfs.h>
+#include <api.h>
 #include <vmm.h>
 #include <pmm.h>
 
@@ -127,9 +128,26 @@ int32_t task_fork(struct syscall_regs* regs) {
 
     child->pid = next_pid++;
     child->state = TASK_READY;
-    child->kernel_stack = (uint8_t*)malloc(4096);
-    child->user_stack = (uint8_t*)malloc(4096);
 
+    child->kernel_stack = (uint8_t*)malloc(4096);
+    if (!child->kernel_stack) {
+        free(child);
+        return -12;
+    }
+
+    /* Выделяем под стек пользователя физическую страницу из PMM,
+     * а раньше было из кучи ядра (виртуальной памяти).
+     */
+    uint32_t child_user_phys = pmm_alloc_zeroed();
+    if (!child_user_phys) {
+        free(child->kernel_stack);
+        free(child);
+        return -12;
+    }
+    child->user_stack = (uint8_t*)table(child_user_phys);
+
+    /* Копируем данные стека пользователя родителя в новый стек дочернего процесса
+    (Для Identity-пейджинга 1в1 первыми 64 МБ к которым принадлежит стек родителя). */
     memcpy(child->user_stack, current_task->user_stack, 4096);
 
     memcpy(child->kernel_stack, current_task->kernel_stack, 4096);
@@ -137,17 +155,16 @@ int32_t task_fork(struct syscall_regs* regs) {
     strcpy(child->cwd, current_task->cwd);
 
     int32_t kstack_offset = (int32_t)child->kernel_stack - (int32_t)current_task->kernel_stack;
-    int32_t ustack_offset = (int32_t)child->user_stack - (int32_t)current_task->user_stack;
-
     child->esp = (uint32_t)regs + kstack_offset;
 
     struct syscall_regs* child_regs = (struct syscall_regs*)child->esp;
-
     uint32_t* child_iret_frame = (uint32_t*)((uint32_t)child->kernel_stack + 4096);
 
-    child_iret_frame[-2] += ustack_offset;
+    uint32_t parent_esp_page_offset = child_iret_frame[-2] & 0xFFF;
+    child_iret_frame[-2] = child_user_phys + parent_esp_page_offset;
 
-    child_regs->ebp += ustack_offset;
+    uint32_t parent_ebp_page_offset = child_regs->ebp & 0xFFF;
+    child_regs->ebp = child_user_phys + parent_ebp_page_offset;
 
     child_regs->eax = 0;
 
@@ -208,6 +225,7 @@ void task_destroy(void) {
     );
 }
 int32_t task_execve(const char* path, struct syscall_regs* regs) {
+    puts_com1("Masix: OnalDebug: task_execve x1");
     if (!path) return -14; // -EFAULT
 
     /* Открываем файл через VFS */
@@ -224,6 +242,7 @@ int32_t task_execve(const char* path, struct syscall_regs* regs) {
         vfs_close(fd);
         return -13; // -EACCES (Permission denied, если это папка)
     }
+    puts_com1("Masix: OnalDebug: task_execve x2 (VFS Thing)");
 
     /* Выделяем память под размер ELF-файла */
     void* elf_buffer = malloc(node->size);
@@ -238,6 +257,7 @@ int32_t task_execve(const char* path, struct syscall_regs* regs) {
 
     if (bytes_read < (int32_t)node->size) {
         free(elf_buffer);
+        puts_com1("Masix: OnalDebug: task_execve x3 (Buffer freeing)");
         return -5; // -EIO
     }
 
@@ -263,18 +283,21 @@ int32_t task_execve(const char* path, struct syscall_regs* regs) {
     /* Пересчитываем указатель стека под выравнивание */
     uint32_t* args_ptr = (uint32_t*)ustack_str;
 
-    args_ptr[-1] = 0;                  // envp[0] = NULL (указатель на массив строк)
-    args_ptr[-2] = 0;                  // argv[1] = NULL (конец массива аргументов)
-    args_ptr[-3] = (uint32_t)ustack_str; // argv[0] = указатель на строку с именем файла
-
-    /* Сами аргументы для функции main(argc, argv, envp) */
-    args_ptr[-4] = 0;                  // Ссылка на envp для main
-    args_ptr[-5] = (uint32_t)&args_ptr[-3]; // Ссылка на argv для main (&argv[0])
-    args_ptr[-6] = 1;                  // argc = 1
+    /* Строим плоский массив по (примерному) стандарту Linux i386 ABI */
+    args_ptr[-1] = 0;                    // auxv[0].a_un.a_val = 0 (Конец Auxiliary Vector)
+    args_ptr[-2] = 0;                    // auxv[0].a_type = 0 (AT_NULL)
+    args_ptr[-3] = 0;                    // envp[0] = NULL (Конец массива переменных окружения)
+    args_ptr[-4] = 0;                    // argv[1] = NULL (Конец массива аргументов)
+    args_ptr[-5] = (uint32_t)ustack_str; // argv[0] = Прямой указатель на строку пути
+    args_ptr[-6] = 1;                    // argc = 1
 
     uint32_t* kstack_iret = (uint32_t*)((uint32_t)current_task->kernel_stack + 4096);
-    /* Передаем новый указатель юзер-стека в iret фрейм */
-    kstack_iret[-2] = (uint32_t)&args_ptr[-6];
+
+    /* Передаем новый указатель юзер-стека в iret фрейм.
+     * Пользовательский ESP должен указывать строго на argc (на элемент -6)!
+     */
+    uint32_t user_esp_val = (uint32_t)args_ptr - 24;
+    kstack_iret[-2] = user_esp_val;
     kstack_iret[-5] = (uint32_t)entry_point;
 
     /* Обнуляем регистры общего назначения перед прыжком */

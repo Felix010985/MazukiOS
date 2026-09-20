@@ -16,6 +16,17 @@
 #define VFS_FILE      1
 #define VFS_DIRECTORY 2
 
+#define MAX_FD 32
+#define PIPE_COUNT 8
+#define PIPE_SIZE 4096
+#define UNIX_SOCKET_COUNT 8
+#define UNIX_SOCKET_QUEUE 4096
+#define UNIX_SOCKET_PATH 108
+#define UNIX_SOCKET_NONE 0xFFFFFFFFU
+#define INET_SOCKET_COUNT 8
+#define INET_DATAGRAM_COUNT 8
+#define INET_DATAGRAM_SIZE 512
+
 struct vfs_node;
 
 typedef int32_t (*vfs_read_t)(struct vfs_node *node, uint32_t offset, uint32_t size, uint8_t *buffer);

@@ -14,12 +14,15 @@ ROOTFS_SRC_DIR := $(BUILD_DIR)/rootfs
 INITRAMFS_IMG  := $(BUILD_DIR)/initramfs.cpio
 
 MUSL_DIR  := world/musl
-MUSL_INC  := -I$(MUSL_DIR)/include
+MUSL_SYSROOT := world/sysroot
+MUSL_INC  := -I$(MUSL_SYSROOT)/include
+
+MUSL_BUILD_DIR := $(BUILD_DIR)/musl_obj
 
 TARGET_FLAGS := -target i686-unknown-elf
 
 SYS_CFLAGS  := $(TARGET_FLAGS) -Isys/kernel/arch/i686/include -Isys/kernel/include -Isys/kernel/drivers/include -Isys/kernel/fs/include -Iinclude -ffreestanding -nostdlib -fno-stack-protector -fno-pic -O0 -Wall -Wextra -MMD
-USER_CFLAGS := $(TARGET_FLAGS) -Iworld $(MUSL_INC) -nostdinc -ffreestanding -mno-sse -mno-sse2 -fno-stack-protector -fno-pic -O0 -Wall -Wextra -MMD
+USER_CFLAGS := $(TARGET_FLAGS) -Iworld $(MUSL_INC) -nostdinc -ffreestanding -mno-sse -mno-sse2 -fno-stack-protector -fno-pic -Os -ffunction-sections -fdata-sections -Wall -Wextra -MMD
 
 LDFLAGS := -m elf_i386 -T linker.ld -n
 
@@ -45,8 +48,34 @@ STATUS_WARN := [$(CLR_YELLOW) WARN $(CLR_RESET)]
 STATUS_INFO := [$(CLR_CYAN) INFO $(CLR_RESET)]
 
 .PHONY: all
-all: $(BUILD_DIR)/kernel.elf $(USER_ELFS) $(INITRAMFS_IMG)
+all: $(BUILD_DIR)/kernel.elf world $(INITRAMFS_IMG)
 	printf "$(CLR_GREEN)==== Компиляция и линковка ядра и юзерленда успешно завершена! ====$(CLR_RESET)\n"
+
+.PHONY: world
+world: $(MUSL_SYSROOT)/lib/libc.a $(USER_ELFS)
+	printf "$(CLR_GREEN)==== Сборка юзерленда World успешно завершена! ====$(CLR_RESET)\n"
+
+$(MUSL_SYSROOT)/lib/libc.a:
+	printf "$(STATUS_INFO) Настройка musl libc...\n"
+	mkdir -p $(MUSL_BUILD_DIR)
+	cd $(MUSL_BUILD_DIR) && CC="$(CC)" AR="llvm-ar" RANLIB="llvm-ranlib" \
+		CFLAGS="$(TARGET_FLAGS) -O2 -mno-sse -mno-sse2 -fno-pic -fno-pie" \
+		../../$(MUSL_DIR)/configure \
+		--prefix= \
+		--target=i686-unknown-elf \
+		--disable-shared \
+		--enable-static > /dev/null 2>&1
+
+	printf "$(STATUS_OK) musl libc успешно настроена!\n"
+
+	$(MAKE) --no-print-directory -C $(MUSL_BUILD_DIR) -j$$(nproc) 2>&1 | \
+		sed -u -n 's/.* -o \([^ ]*\).*/\1/p' | \
+		xargs -I {} printf "\r$(STATUS_INFO) Компиляция libc: {}\033[K"
+	printf "\r\033[K"
+
+	$(MAKE) --no-print-directory -C $(MUSL_BUILD_DIR) DESTDIR=../../$(MUSL_SYSROOT) install > /dev/null 2>&1
+	rm -rf $(MUSL_BUILD_DIR)
+	printf "$(STATUS_OK) musl libc успешно скомпилирована!\n"
 
 .PHONY: kernel
 kernel: $(BUILD_DIR)/kernel.elf
@@ -82,12 +111,12 @@ $(BUILD_DIR)/kernel.elf: $(SYS_OBJS) linker.ld
 $(BUILD_DIR)/world/%.elf: world/%.c
 	printf "$(STATUS_INFO) Линковка юзерленда с musl libc: $(CLR_CYAN)$<$(CLR_RESET) -> $@\n"
 	mkdir -p $(dir $@)
-	$(CC) $(USER_CFLAGS) -static -nostdlib -Wl,-Ttext=0x01000000 -o $@ \
-		$(MUSL_DIR)/lib/crt1.o \
-		$(MUSL_DIR)/lib/crti.o \
+	$(CC) $(USER_CFLAGS) -static -nostdlib -Wl,-Ttext=0x02000000 -Wl,--gc-sections -Wl,-s -o $@ \
+		$(MUSL_SYSROOT)/lib/crt1.o \
+		$(MUSL_SYSROOT)/lib/crti.o \
 		$< \
-		-L$(MUSL_DIR)/lib -lc \
-		$(MUSL_DIR)/lib/crtn.o \
+		-L$(MUSL_SYSROOT)/lib -lc \
+		$(MUSL_SYSROOT)/lib/crtn.o \
 		-lgcc 2> $(BUILD_DIR)/tmp_user_err.log || ( \
 			printf "[$(CLR_RED)FAIL$(CLR_RESET)] CC (Userland) $<\n"; \
 			cat $(BUILD_DIR)/tmp_user_err.log; \
@@ -103,8 +132,6 @@ $(BUILD_DIR)/world/%.elf: world/%.c
 		fi; \
 	fi; \
 	rm -f $(BUILD_DIR)/tmp_user_err.log
-	#mkdir -p $(ROOTFS_SRC_DIR)/bin
-	#cp $@ $(ROOTFS_SRC_DIR)/bin/$(notdir $(basename $<))
 
 $(INITRAMFS_IMG): $(USER_ELFS)
 	printf "$(STATUS_INFO) Упаковка initramfs в формат CPIO...\n"
@@ -129,7 +156,7 @@ $(INITRAMFS_IMG): $(USER_ELFS)
 	fi
 
 	cd $(ROOTFS_SRC_DIR) && find . | cpio -o -H newc > ../../$(INITRAMFS_IMG) 2>/dev/null
-	printf "      $(CLR_GRAY)| Размер initramfs: $$(wc -c < $(INITRAMFS_IMG)) байт$(CLR_RESET)\n" \
+	printf "      $(CLR_GRAY)| Размер initramfs: $$(wc -c < $(INITRAMFS_IMG)) байт$(CLR_RESET)\n"
 
 	rm -rf $(ROOTFS_SRC_DIR)
 
@@ -168,8 +195,11 @@ $(GRUB_DIR)/grub.cfg:
 	@echo '}' >> $@
 
 .PHONY: clean
+.PHONY: clean
 clean:
 	printf "$(CLR_CYAN)==== Очистка рабочей директории build/ ====$(CLR_RESET)\n"
 	rm -rf $(BUILD_DIR)
+	rm -rf $(MUSL_SYSROOT)/lib
+
 
 -include $(DEP_FILES)

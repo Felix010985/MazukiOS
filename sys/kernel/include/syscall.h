@@ -28,6 +28,7 @@
 #define MASIX_BRK             45
 #define MASIX_IOCTL           54
 #define MASIX_FCNTL           55
+#define MASIX_DUP2            63
 #define MASIX_GETDENTS        78
 #define MASIX_MUNMAP          91
 #define MASIX_SOCKETCALL      102
@@ -38,6 +39,7 @@
 #define MASIX__LLSEEK         140
 #define MASIX_WRITEV          146
 #define MASIX_FSTAT64_ALT     147
+#define MASIX_NANOSLEEP       162
 #define MASIX_POLL            168
 #define MASIX_RT_SIGACTION    174
 #define MASIX_RT_SIGPROCMASK  175

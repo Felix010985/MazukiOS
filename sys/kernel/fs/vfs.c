@@ -9,20 +9,12 @@
  */
 #include <vfs.h>
 #include <string.h>
+#include <stdio.h>
 #include <version.h>
 #include <procfs.h>
+#include <drivers/serial.h>
 
-#define MAX_FD 32
-#define PIPE_COUNT 8
-#define PIPE_SIZE 4096
-#define UNIX_SOCKET_COUNT 8
-#define UNIX_SOCKET_QUEUE 4096
-#define UNIX_SOCKET_PATH 108
-#define UNIX_SOCKET_NONE 0xFFFFFFFFU
-#define INET_SOCKET_COUNT 8
-#define INET_DATAGRAM_COUNT 8
-#define INET_DATAGRAM_SIZE 512
-
+mountpoint_t *mountpoints_list = NULL;
 // vfs_node_t* fd_table[32];
 file_t fd_table[32];
 
@@ -211,6 +203,7 @@ void vfs_mount_core(const char *path, fsdriver_t *driver) {
 //     vfs_mount_core("/proc", &procfs_driver);
 // }
 void vfs_init(void) {
+    mountpoints_list = NULL;
     for (int i = 0; i < 32; i++) {
         fd_table[i].type = FT_EMPTY;
         fd_table[i].offset = 0;
@@ -229,12 +222,15 @@ void vfs_init(void) {
 }
 
 int32_t vfs_open(const char *path) {
+    puts_com1("Masix: OnalDebug: vfs_open started\n");
     int fd = -1;
+    puts_com1("Masix: OnalDebug: vfs_open started\n");
     for (int i = 3; i < MAX_FD; i++) {
         if (fd_table[i].type == FT_EMPTY) { fd = i; break; }
     }
+    puts_com1("Masix: OnalDebug: vfs_open started\n");
     if (fd == -1) return -24; // -EMFILE
-
+    puts_com1("Masix: OnalDebug: vfs_open started\n");
     extern void* malloc(size_t size);
     vfs_node_t* node = (vfs_node_t*)malloc(sizeof(vfs_node_t));
     if (!node) return -12; // -ENOMEM
@@ -242,19 +238,41 @@ int32_t vfs_open(const char *path) {
      * Освобождаем используемую память после
      * strncmp гарантирует (около 52%) что все пройдет успешно
      */
-    for (mountpoint_t *mp = mount_list; mp != NULL; mp = mp->next) {
+    extern mountpoint_t *mountpoints_list;
+
+    for (mountpoint_t *mp = mountpoints_list; mp != NULL; mp = mp->next) {
+        puts_com1("Masix: OnalDebug: vfs_open started\n");
         size_t len = strlen(mp->path);
         if (strncmp(path, mp->path, len) == 0) {
-            if (path[len] == '/' || path[len] == '\0') {
+            /* Если точка монтирования это корень "/" (len == 1)
+             * или если следующий символ после префикса - слэш/конец строки
+             */
+            if (len == 1 && (strncmp(path, "/proc", 5) == 0 || strncmp(path, "/sys", 4) == 0 || strncmp(path, "/dev", 4) == 0)) {
+                continue;
+            }
+            if (len == 1 || path[len] == '/' || path[len] == '\0') {
+                puts_com1("Masix: OnalDebug: vfs_open matched mountpoint!\n");
+                 /* Если длина точки монтирования 0 или 1, либо первый символ '/' или '\0' -
+                 * это корень или пустой дефолтный mount. Выходим из цикла монтирования к file_table!
+                 */
+                if (len <= 1 || mp->path[0] == '/' || mp->path[0] == '\0') {
+                    break;
+                }
+
                 const char *subpath = path + len;
                 if (*subpath == '/') subpath++;
 
                 int32_t res = mp->driver->open(subpath, node);
+
+                puts_com1("Masix: OnalDebug: vfs_open started HERE\n"); // <-- Потом это
+                //printf("Masix: OnalDebug: Driver open returned code: %d\n", res);
                 if (res == 0) {
                     fd_table[fd].type = FT_VFS_FILE;
+                    puts_com1("Masix: OnalDebug: fd_table[fd].type = FT_VFS_FILE\n");
                     fd_table[fd].offset = 0;
+                    puts_com1("Masix: OnalDebug: fd_table[fd].offset = 0\n");
                     fd_table[fd].private_data = (void*)node;
-
+                    puts_com1("Masix: OnalDebug: vfs_open started and return fd\n");
                     return fd;
                 }
 
@@ -264,6 +282,7 @@ int32_t vfs_open(const char *path) {
             }
         }
     }
+    puts_com1("Masix: OnalDebug: vfs_open started x2\n");
 
     int file_idx = -1;
     for (int i = 0; i < 64; i++) {
@@ -280,6 +299,7 @@ int32_t vfs_open(const char *path) {
             free(node);
             return -28;
         } // -ENOSPC
+        puts_com1("Masix: OnalDebug: vfs_open ended\n");
     }
 
     strcpy(node->name, file_table[file_idx].name);
@@ -571,6 +591,6 @@ int32_t vfs_mount(const char *target, fsdriver_t *driver) {
     new_mp->next = mountpoints_list;
     mountpoints_list = new_mp;
 
-    puts_com1("Masix: Mount: Successfully mounted at: %s\n", new_mp->path);
+    //puts_com1("Masix: Mount: Successfully mounted at: %s\n", new_mp->path);
     return 0;
 }

@@ -23,7 +23,12 @@ void sys_print(const char* str, uint8_t color);
 void sys_cls(void);
 void sys_read_line(char* buffer, uint8_t color);
 int32_t sys_mount(const char *source, const char *target, const char *filesystemtype, unsigned long flags, const void *data);
+int32_t sys_dup2(int32_t oldfd, int32_t newfd);
 
 int strcmp(const char* a, const char* b);
+
+void* malloc(size_t size);
+
+void free(void* ptr);
 
 #endif

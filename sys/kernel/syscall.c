@@ -214,6 +214,15 @@ uint32_t syscall_handler_c(struct syscall_regs* regs) {
         case MASIX_FCNTL:
             return 0;
 
+        case MASIX_DUP2:
+        {
+            int32_t oldfd = (int32_t)regs->ebx;
+            int32_t newfd = (int32_t)regs->ecx;
+
+            extern int32_t sys_dup2(int32_t oldfd, int32_t newfd);
+            return sys_dup2(oldfd, newfd);
+        }
+
         case MASIX_FSTAT:
             return 0;
 
@@ -287,6 +296,7 @@ uint32_t syscall_handler_c(struct syscall_regs* regs) {
         case MASIX_STAT64:
         case MASIX_FSTAT64:
         case MASIX_FSTAT64_ALT:
+        case MASIX_NANOSLEEP:
             // ebx = fd или путь, ecx = struct stat*
             return 0;
 
@@ -411,13 +421,15 @@ __attribute__((naked)) void syscall_handler_asm(void) {
         "mov %eax, 28(%esp) \n\t"
 
         "cli \n\t"
-
         "popa \n\t"
 
         "push %ax \n\t"
         "mov $0x23, %ax \n\t"
         "mov %ax, %ds \n\t"
         "mov %ax, %es \n\t"
+        "mov $0x33, %ax \n\t"
+        "mov %ax, %fs \n\t"
+        "mov %ax, %gs \n\t"
         "pop %ax \n\t"
 
         "iret \n\t"
